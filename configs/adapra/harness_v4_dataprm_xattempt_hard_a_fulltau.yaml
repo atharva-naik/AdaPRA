@@ -1,0 +1,44 @@
+
+model: "bedrock/qwen.qwen3-coder-next"
+temperature: 0.0
+aws_region_name: "us-east-1"
+
+backend: "apptainer"
+sif_image: "/path/to/scratch/images/dsgym_v4_runner_cuda.sif"
+data_path: "data/data/dspredict-hard"
+workspace_root: "/path/to/scratch/dsgym_v4_hard_dataprm_fulltau_a"
+csv_artifact_root: "/path/to/scratch/dsgym_v4_hard_dataprm_fulltau_artifacts"
+
+max_attempts: 5
+max_iterations_per_attempt: 300
+command_timeout: 600
+max_command_timeout: 7200
+task_timeout: 14400   # 4h agent budget (matches Hard noPRM effective run); host watchdog subtracts reviewer time (wedge fix)
+prompts_dir: "prompts_dir_v4_twrap"
+condenser_max_size: 80
+workers: 4
+
+prm_feedback:
+  enabled: false
+prm_inline:
+  enabled: false
+
+prm_reviewer:
+  enabled: true
+  impl: "dataprm"
+  history: "pull"                    # DataPRM reads the full turn-annotated tau file
+  max_turns: 100                     # unused by dataprm (native max_rounds=10 per step)
+  time_budget_seconds: 3600
+  command_timeout: 600
+  inject_feedback: true
+  inject_on_pass: false
+  poll_timeout_seconds: 3900
+  gate_finish_on_fail: true
+  max_finish_refinements: 1
+  cadence_turns: 20   # HARD policy (all Hard supervised runs use cadence 20)
+  review_on_finish: true
+  transcript_detail: "full"
+  llm_kwargs:
+    model: "dataprm"
+    base_url: "http://localhost:19006/v1"
+    api_key: "dummy"

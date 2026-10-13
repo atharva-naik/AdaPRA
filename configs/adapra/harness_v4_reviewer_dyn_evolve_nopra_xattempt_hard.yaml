@@ -1,0 +1,48 @@
+
+model: "bedrock/qwen.qwen3-coder-next"
+temperature: 0.0
+aws_region_name: "us-east-1"
+
+backend: "apptainer"
+sif_image: "/path/to/scratch/images/dsgym_v4_runner_cuda.sif"
+data_path: "data/data/dspredict-hard"
+workspace_root: "/path/to/scratch/dsgym_v4_hard_evolve_nopra_xattempt"
+csv_artifact_root: "/path/to/scratch/dsgym_v4_hard_evolve_nopra_xattempt_artifacts"
+
+max_attempts: 5
+max_iterations_per_attempt: 300
+command_timeout: 600
+max_command_timeout: 7200
+task_timeout: 14400   # 4h agent budget (matches Hard noPRM effective run); host watchdog subtracts reviewer time (wedge fix)
+prompts_dir: "prompts_dir_v4_twrap"
+condenser_max_size: 80
+workers: 4
+
+prm_feedback:
+  enabled: false
+prm_inline:
+  enabled: false
+
+prm_reviewer:
+  enabled: true
+
+  rubric_set: "discovered_xattempt"  # 19-rubric cross-attempt-aware variant of discovered
+  operationalization: "static"       # NO terminal: read files + reason (linter)  <-- − PRA delta
+  evolution: "evolving"              # add/update/retire_rubric tools ON (AdaPRA)
+  history: "pull"                    # full tau exposed as a read-only file, read on demand
+
+  max_turns: 100
+  time_budget_seconds: 3600
+  command_timeout: 600
+  inject_feedback: true
+  inject_on_pass: false
+  poll_timeout_seconds: 3900
+  gate_finish_on_fail: true
+  max_finish_refinements: 1
+  cadence_turns: 20   # HARD policy: reviewer wakes every 20 turns (vs Easy 10) to
+  review_on_finish: true
+  min_importance: 0.5
+  failure_threshold: 0.6
+  llm_kwargs:
+    model: "bedrock/us.anthropic.claude-sonnet-4-6"
+    aws_region_name: "us-east-1"

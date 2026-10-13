@@ -1,0 +1,47 @@
+Bootstrap: docker
+From: python:3.12-slim
+
+# Apptainer (SIF) equivalent of the v4_runner Dockerfile. Build with:
+#   bash executors/container_images/v4_runner/build_sif.sh
+# (build_sif.sh stages agent_runner.py + prompts_dir_v4 into the build context,
+#  mirroring build.sh for docker.)
+#
+# Python 3.12 base is REQUIRED: openhands-ai>=0.10 needs Python >=3.12.
+# The harness also bind-mounts agent_runner.py + prompts into /app at runtime,
+# so the baked copies are a fallback and code changes don't require a rebuild.
+
+%files
+    requirements.v4.txt /opt/requirements.txt
+    agent_runner.py /app/agent_runner.py
+    prompts_dir_v4 /app/prompts
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update && apt-get install -y --no-install-recommends \
+        tmux git curl build-essential && \
+        rm -rf /var/lib/apt/lists/*
+
+    # PyTorch (CUDA cu124) — GPU-capable build for CV/audio/NLP tasks
+    # (DSPredict-Hard). The wheel bundles its own CUDA runtime; the host driver
+    # (via apptainer --nv, gated by gpu_id) supplies the kernel driver. Works on
+    # A100 (sm_80). --nv is only added when the harness runs with a GPU id, so a
+    # CPU-only tabular run still works with this image (torch just won't see a GPU).
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124
+
+    pip install --no-cache-dir -r /opt/requirements.txt
+    pip install --no-cache-dir openhands-ai==1.6.0
+
+    # Bind mountpoints must exist in the image: with a read-only root (no
+    # --writable-tmpfs) apptainer cannot auto-create missing mountpoints, so a
+    # bind to a nonexistent dir silently fails (this broke /submission).
+    mkdir -p /workspace /data /submission
+    chmod 777 /workspace /submission
+
+%environment
+    export PYTHONUNBUFFERED=1
+
+%runscript
+    exec sleep infinity
+
+%startscript
+    exec sleep infinity

@@ -1,0 +1,19 @@
+
+model: "bedrock/qwen.qwen3-coder-next"
+temperature: 0.0
+aws_region_name: "us-east-1"
+
+backend: "apptainer"
+sif_image: "/path/to/scratch/images/dsgym_v4_runner.sif"
+data_path: "data/data/dspredict-easy"       # host path mounted as /data:ro
+workspace_root: "/path/to/scratch/dsgym_v4"   # host root for per-worker workspaces
+
+max_attempts: 5
+max_iterations_per_attempt: 200
+command_timeout: 600
+task_timeout: 7200
+condenser_max_size: 80
+workers: 4
+
+prm_feedback:
+  enabled: false

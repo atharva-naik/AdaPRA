@@ -1,0 +1,25 @@
+
+model: "bedrock/deepseek.v3.2"
+temperature: 0.0
+aws_region_name: "us-west-2"
+
+backend: "apptainer"
+sif_image: "/path/to/scratch/images/dsgym_v4_runner.sif"
+data_path: "data/data/dspredict-easy"
+workspace_root: "/path/to/scratch/dsgym_v4_noprm_deepseek_v32_bo1"
+csv_artifact_root: "/path/to/scratch/dsgym_v4_noprm_deepseek_v32_bo1_artifacts"
+
+max_attempts: 1
+max_iterations_per_attempt: 200
+command_timeout: 600
+max_command_timeout: 1800
+task_timeout: 10800
+condenser_max_size: 80
+workers: 4
+
+prm_feedback:
+  enabled: false
+prm_inline:
+  enabled: false
+prm_reviewer:
+  enabled: false

@@ -1,0 +1,26 @@
+# Data preprocessing
+pyarrow
+polars
+pandas
+numpy
+tabulate
+
+# ML libraries
+xgboost
+lightgbm
+catboost
+scikit-learn
+scipy
+
+# Feature engineering
+category_encoders
+optuna
+
+# Tools
+tqdm
+rich
+requests
+sympy
+joblib
+matplotlib
+seaborn

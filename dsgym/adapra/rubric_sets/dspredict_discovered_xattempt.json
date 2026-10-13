@@ -1,0 +1,443 @@
+{
+  "set_id": "dspredict_discovered_xattempt",
+  "description": "CROSS-ATTEMPT-AWARE variant of dspredict_discovered. Same 17 offline-discovered rubrics, but four are reframed to reason over the WHOLE best-of-N run (not just the current attempt) — no_churn_without_pivot, hyperparameter_tuning, feature_engineering_investment, model_diversity_and_ensembling — plus two hand-curated cross-attempt rubrics: over_optimization (turns burned on HPO/ensembling without statistically meaningful CV gains, within OR across attempts) and single_model_class_hedging (>2 of the N attempts converging on the same modeling class near finish → diversify to use best-of-N fully). Motivation: best-of-N takes the MAX over attempts, so a diverse-but-slightly-worse attempt is near-pure upside while duplicate attempts waste a shot (beam collapse). These rubrics assume the reviewer is given N (n_attempts) and the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/) — see prm_reviewer prompt. `grounding` (artifact|trajectory) is an ADVISORY recommendation, not a constraint. Build into RubricDef via dsgym.adapra.rubrics.load_rubrics_from_json.",
+  "provenance": {
+    "mode": "from_scratch_unified",
+    "run": "dspredict-easy-bon5-qwen3-v2 (V4-v2 no-PRM)",
+    "judge": "bedrock/us.anthropic.claude-sonnet-4-6",
+    "pool": {
+      "pool": 519,
+      "good": 238,
+      "issue": 281
+    },
+    "views_fed_stage1": [
+      "transcript(tau)",
+      "workspace(W)",
+      "abstract"
+    ],
+    "no_existing_rubrics_in_loop": true
+  },
+  "n_rubrics": 19,
+  "grounding_counts": {
+    "artifact": 11,
+    "trajectory": 8
+  },
+  "rubrics": [
+    {
+      "rubric_id": "cv_score_registry",
+      "category": "A",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Persistent CV Score Registry",
+      "description": "Agent fails to maintain a persistent, machine-readable registry of CV scores updated after every experiment, making principled model selection impossible.",
+      "display_description": "Whether the agent maintains a persistent cv_scores.json (or equivalent) updated after every experiment to enable objective cross-model comparison.",
+      "natural_language_instruction": "Label 'agent_success' if: A machine-readable file (e.g., cv_scores.json) exists in the workspace containing CV scores for every trained model/ensemble, updated consistently throughout the run, and the agent uses it to identify the best model at submission time.\nLabel 'agent_failure' if: No such registry exists, or it is missing entries for major experiments, or it is overwritten per-run rather than accumulated, preventing reliable comparison across all experiments.\nLabel 'not_applicable' if: Only a single model was ever trained and no comparison was needed.\nLabel 'insufficient_evidence' if: The workspace files are not visible and the trajectory does not mention CV score tracking.",
+      "suggested_actions_hint": "Create a cv_scores.json file and append each experiment's name, CV score, std, and metadata immediately after training completes; never overwrite it \u2014 always append.",
+      "supporting_behavior_count": 52,
+      "example_evidence": [
+        "[Turn 63] sorted CV scores printed from cv_scores.json showing stacking_ridge: 0.297996 as best (playground-series-s3e11/attempt_1)",
+        "workspace: cv_scores.json lists all 8 experiments with cv_score and cv_std (playground-series-s3e13/attempt_0)",
+        "[Turn 427] cv_scores.json was overwritten by each model run so no cumulative comparison was possible (playground-series-s5e4/attempt_0)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "cv_score_registry_maintained"
+    },
+    {
+      "rubric_id": "oof_prediction_caching",
+      "category": "E",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "OOF and Test Prediction Caching",
+      "description": "Agent fails to save out-of-fold and test predictions to disk after each model training run, forcing expensive re-training for any ensemble or post-hoc analysis.",
+      "display_description": "Whether the agent caches OOF and test predictions as parquet files after each model training run to enable fast ensemble search without retraining.",
+      "natural_language_instruction": "Label 'agent_success' if: The workspace preds/ directory contains OOF and test prediction files (parquet or similar) for every substantively trained model, and ensemble/stacking scripts load these cached files rather than retraining base models.\nLabel 'agent_failure' if: No OOF or test prediction files exist for trained models, or ensemble scripts retrain base models from scratch instead of loading cached predictions.\nLabel 'not_applicable' if: Only a single model was trained and no ensembling was attempted.\nLabel 'insufficient_evidence' if: The workspace preds/ directory contents cannot be verified from the available information.",
+      "suggested_actions_hint": "After each CV training loop, save fold-accumulated OOF predictions and test predictions to preds/<model_name>_oof.parquet and preds/<model_name>_test.parquet before proceeding.",
+      "supporting_behavior_count": 38,
+      "example_evidence": [
+        "workspace: preds/ directory contains oof_lgbm_lgbm_deep.csv, oof_cb_fast.csv \u2014 loaded by ensemble script without retraining (house-prices-advanced-regression-techniques/attempt_3)",
+        "[Turn 12] 'OOF predictions saved to: /workspace/playground-series-s3e13/preds/lgbm_baseline_oof.parquet' (playground-series-s3e13/attempt_0)",
+        "workspace: preds/lgbm_baseline_oof.parquet, preds/xgb_baseline_oof.parquet all present, enabling ensemble search in seconds (playground-series-s4e1/attempt_2)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "oof_predictions_persisted_for_reuse"
+    },
+    {
+      "rubric_id": "best_model_submission_selection",
+      "category": "A",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Best-CV Model Submission Selection",
+      "description": "Agent fails to submit predictions from the model with the highest validated CV score, instead defaulting to the most recently trained model or an overwritten file.",
+      "display_description": "Whether the agent explicitly selects and submits the model with the best CV score rather than whatever was most recently trained or written to disk.",
+      "natural_language_instruction": "Label 'agent_success' if: The final /submission/submission.csv is verifiably sourced from the model/experiment with the highest CV score in the registry, and the agent explicitly checked the registry before writing the final submission.\nLabel 'agent_failure' if: The submission corresponds to a later, lower-CV experiment that overwrote the best model's output, or the agent selected the most-recent model without checking CV scores.\nLabel 'not_applicable' if: Only one model was trained so no selection was needed.\nLabel 'insufficient_evidence' if: It cannot be determined which model's predictions are in the submission file.",
+      "suggested_actions_hint": "Before finalizing, query cv_scores.json for the best model name, load its cached test parquet file, and write it to /submission/submission.csv \u2014 never rely on whatever the last script wrote.",
+      "supporting_behavior_count": 44,
+      "example_evidence": [
+        "[Turn 71] cp best-CV submission_ensemble_catboost.csv /submission/submission.csv; confirmed by wc -l (house-prices-advanced-regression-techniques/attempt_3)",
+        "[Turn 106] submission_tuned_logistic_stacking.csv (CV 0.867684) was in /submission/ while best was submission_weighted_ensemble_very_fine.csv (0.867743) \u2014 never updated (playground-series-s3e24/attempt_4)",
+        "[Turn 128] agent selected MLP (CV 0.512056, worst model) believing higher log-loss was better (playground-series-s3e26/attempt_0)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "best_model_submission_guard"
+    },
+    {
+      "rubric_id": "submission_integrity_verification",
+      "category": "E",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Submission File Integrity Verification",
+      "description": "Agent fails to verify the final submission file for correct row count, absence of NaN values, valid prediction range, and correct column names before finalizing.",
+      "display_description": "Whether the agent explicitly verifies submission file integrity (row count, NaN absence, value range, column names) before concluding the attempt.",
+      "natural_language_instruction": "Label 'agent_success' if: The trajectory contains an explicit check of the final /submission/submission.csv covering at least row count matching the test set size and absence of NaN values, with results logged.\nLabel 'agent_failure' if: No integrity check is performed, or the check reveals problems (wrong row count, NaNs, binary corruption, wrong column names) that are not corrected before finishing.\nLabel 'not_applicable' if: The attempt ended before any submission file was generated.\nLabel 'insufficient_evidence' if: It cannot be determined whether a verification step occurred.",
+      "suggested_actions_hint": "After writing /submission/submission.csv, run: shape check, NaN count, value range, wc -l against expected test size, and column name comparison against sample_submission.csv \u2014 fix any issues before calling finish.",
+      "supporting_behavior_count": 28,
+      "example_evidence": [
+        "[Turn 85] Rows: 240224, NaN values: 0, Min: 50.0, Max: 150.0 \u2014 all checks passed (playground-series-s3e11/attempt_1)",
+        "[Turn 88] binary parquet copied to submission.csv \u2014 binary garbage detected in head output, then fixed (playground-series-s3e9/attempt_4)",
+        "[Turn 26] cp stacking_test.parquet submission.csv produced binary file; UnicodeDecodeError caught at Turn 91 (playground-series-s4e5/attempt_1)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "submission_integrity_verified"
+    },
+    {
+      "rubric_id": "regression_detection_and_revert",
+      "category": "E",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "CV Regression Detection and Revert",
+      "description": "Agent fails to detect when a later experiment has overwritten the submission with worse predictions, or detects it but does not revert to the best-CV model before finishing.",
+      "display_description": "Whether the agent detects when a subsequent experiment produces a CV regression and explicitly reverts the submission to the best-validated model.",
+      "natural_language_instruction": "Label 'agent_success' if: The agent detects (via cv_scores.json comparison or file inspection) that the current submission.csv corresponds to a worse model than a previously computed best, and explicitly restores the best model's predictions to /submission/submission.csv before finishing.\nLabel 'agent_failure' if: The final submission reflects a worse model because the agent did not check for regressions, or detected a regression but failed to revert before finishing.\nLabel 'not_applicable' if: Only one model was trained, making regression impossible.\nLabel 'insufficient_evidence' if: It cannot be determined whether a regression occurred or was addressed.",
+      "suggested_actions_hint": "After every experiment that writes to /submission/submission.csv, immediately compare the new CV score to cv_scores.json; if it is not the new best, reload the best model's parquet and rewrite the submission.",
+      "supporting_behavior_count": 22,
+      "example_evidence": [
+        "[Turn 38] detected stacking LR overwrote submission; reverted to best ensemble predictions (playground-series-s3e13/attempt_0)",
+        "[Turn 125] head shows wrong predictions from 4-way-no-hgb; agent restored 5-way-hgb-superfine (playground-series-s3e14/attempt_4)",
+        "[Turn 45-48] agent diagnosed leaky calibration as invalid but still copied it to final submission instead of reverting (playground-series-s3e16/attempt_3)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "best_model_submission_guard (revert side)"
+    },
+    {
+      "rubric_id": "valid_cv_methodology",
+      "category": "A",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Valid Cross-Validation Methodology",
+      "description": "Agent fails to use a proper held-out cross-validation scheme, instead evaluating models on training data, computing in-sample metrics, or using CV schemes mismatched to the problem type.",
+      "display_description": "Whether the agent uses a proper out-of-fold or held-out cross-validation scheme that produces honest, unbiased CV score estimates.",
+      "natural_language_instruction": "Label 'agent_success' if: All reported CV scores are computed using held-out fold predictions (OOF) that were not used during model fitting, with an appropriate split strategy for the task (stratified for classification, time-based for time series).\nLabel 'agent_failure' if: Any CV score in cv_scores.json is computed by evaluating a model on the same data it was trained on (in-sample), or ensemble weights are searched using the same OOF data without a secondary holdout, or the CV scheme is wrong for the task type (e.g., random KFold for time series).\nLabel 'not_applicable' if: No model training or CV was performed.\nLabel 'insufficient_evidence' if: The training code is not visible and CV methodology cannot be inferred from outputs.",
+      "suggested_actions_hint": "Ensure every CV score is computed strictly on held-out fold rows the model never saw during fitting; for ensemble weight search, either use a separate holdout or ensure weights are optimized inside the same fold loop that generated OOF predictions.",
+      "supporting_behavior_count": 41,
+      "example_evidence": [
+        "[Turn 8] train_stacking_meta_v2.py: meta.fit(X_train, y_true) then oof_pred = meta.predict(X_train) \u2014 in-sample RMSE 0.029788 recorded as CV (playground-series-s3e15/attempt_4)",
+        "[Turn 53] expanding-window CV fold scores [12.52, 9.45, 13.46, 17.46] \u2014 early folds dominate mean, misrepresenting true generalization (playground-series-s3e19/attempt_0)",
+        "[Turn 143] StratifiedKFold seed=42 used consistently across all model families ensuring comparable CV scores (playground-series-s3e3/attempt_0)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "inconsistent_cross_validation / time_series_cv_scheme (consolidated)"
+    },
+    {
+      "rubric_id": "metric_objective_alignment",
+      "category": "C",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Training Objective\u2013Metric Alignment",
+      "description": "Agent fails to align the model's training objective with the competition evaluation metric, training on a mismatched loss that systematically biases predictions.",
+      "display_description": "Whether the agent aligns the model's training objective or target transformation with the competition evaluation metric.",
+      "natural_language_instruction": "Label 'agent_success' if: The training loss or target transformation matches the evaluation metric (e.g., log1p target for RMSLE, MAE objective for MedAE, stratified splits for imbalanced AUC, ordinal-aware loss for QWK).\nLabel 'agent_failure' if: Models are trained with a mismatched objective (e.g., RMSE on raw target for an RMSLE competition, MSE for QWK, no log transform for RMSLE), as evidenced in training scripts or cv_scores.json metadata.\nLabel 'not_applicable' if: The competition metric is accuracy or AUC and any standard classification objective is acceptable.\nLabel 'insufficient_evidence' if: Training scripts are not visible and metric alignment cannot be inferred.",
+      "suggested_actions_hint": "For RMSLE competitions apply log1p to the target and train with RMSE; for QWK use ordinal regression or threshold-optimize continuous predictions; for MedAE use MAE or quantile(0.5) objectives \u2014 verify alignment before training any model.",
+      "supporting_behavior_count": 14,
+      "example_evidence": [
+        "[Turn 47] lgb_params: 'objective': 'regression', 'metric': 'rmse' \u2014 no log transform applied despite RMSLE metric (playground-series-s3e11/attempt_0)",
+        "train_lgbm_baseline.py: 'objective': 'regression' on raw Rings target despite RMSLE metric (playground-series-s4e4/attempt_0)",
+        "cv_scores.json: catboost_v12 uses 'objective': 'MAE' \u2014 correctly aligned with MedAE competition metric (playground-series-s3e25/attempt_1)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "training_objective_metric_alignment"
+    },
+    {
+      "rubric_id": "model_diversity_and_ensembling",
+      "category": "B",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Model Diversity and Ensembling",
+      "description": "Agent fails to train multiple diverse model families or stops at a single model without attempting ensembling, leaving ensemble gains unrealized.",
+      "display_description": "Whether the agent trains at least two distinct model families and combines them via ensemble or stacking, and whether model-family coverage across the best-of-N attempts is diverse rather than duplicated.",
+      "natural_language_instruction": "This is a best-of-N run (N=n_attempts); the submitted result is the MAX over attempts, so what matters is the diversity of the WHOLE beam, not just this attempt. Read the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/) and cv_scores.json to see which model families the earlier attempts already covered.\nLabel 'agent_success' if: The workspace contains trained models from at least two distinct families (e.g., LightGBM + XGBoost, or GBDT + neural net), their OOF predictions are combined via weighted averaging or stacking with the ensemble CV compared against individual models, AND — across attempts — the best-of-N beam is not collapsing onto one family (i.e., this attempt either adds a family/architecture the beam has not tried or is early enough that convergence is not yet a concern).\nLabel 'agent_failure' if: Only one model family was trained, or models from multiple families were trained but never combined, or an ensemble combined weak+strong models in a way that degraded performance (e.g., blending with a model 2.5pp weaker), OR this attempt is re-training essentially the same model families/ensemble the prior attempts already built (duplicating the beam) when a distinct family could have been tried.\nLabel 'not_applicable' if: The competition or task type makes single-model submission standard (e.g., data-centric competition where model is fixed), or fewer than two attempts have run so cross-attempt diversity cannot yet be assessed.\nLabel 'insufficient_evidence' if: Training scripts and the prior-attempt transcripts are not visible.",
+      "suggested_actions_hint": "Within an attempt: train at least LightGBM, XGBoost, and CatBoost, compute pairwise OOF correlation, and if correlation < 0.99 grid-search blend weights on OOF preds. Across attempts: check which families the earlier attempts already covered (prior transcripts + cv_scores.json) and, if the beam is converging on one family, devote THIS attempt to a genuinely different family/architecture to widen the best-of-N beam.",
+      "supporting_behavior_count": 28,
+      "example_evidence": [
+        "cv_scores.json: only 'lightgbm_baseline' entry \u2014 no second model attempted (house-prices-advanced-regression-techniques/attempt_0)",
+        "[Turn 64] CatBoost scored 0.125712 vs prior best 0.126306; blending improved to 0.124118 (house-prices-advanced-regression-techniques/attempt_3)",
+        "workspace: cv_scores.json: lgbm_baseline=0.8894, xgb=0.8891, catboost=0.8888, ensemble_best_weights=0.8896 (playground-series-s4e1/attempt_2)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "model_family_diversity + advanced_ensemble_strategy_explored (consolidated)"
+    },
+    {
+      "rubric_id": "hyperparameter_tuning",
+      "category": "B",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Hyperparameter Tuning Beyond Defaults",
+      "description": "Agent fails to tune model hyperparameters beyond out-of-the-box defaults, submitting with parameters that are known to be suboptimal for the dataset size and task.",
+      "display_description": "Whether the agent performs at least one principled hyperparameter search beyond default settings for the primary model family — while recognizing when tuning has already been exhausted in earlier best-of-N attempts.",
+      "natural_language_instruction": "This is a best-of-N run (N=n_attempts). Before scoring, consult the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/) and cv_scores.json to see whether hyperparameter search was ALREADY done in an earlier attempt and what it yielded.\nLabel 'agent_success' if: EITHER the workspace contains at least one training script or cv_scores.json entry showing a model trained with non-default hyperparameters (e.g., num_leaves != 31, learning_rate != 0.05, or a grid/random/Optuna search) with the tuned CV compared against baseline, OR the agent correctly recognizes that prior attempts already tuned this family to saturation (no meaningful CV gain) and therefore spends its budget elsewhere (new family, features, diversity) rather than re-tuning.\nLabel 'agent_failure' if: The primary model uses default/near-default hyperparameters (num_leaves=31, max_depth=6, lr=0.05) with no documented search AND no earlier attempt tuned it either, OR a 'tuned' variant produced CV identical to baseline. Do NOT reward re-running a hyperparameter search that a prior attempt already showed to be saturated — that is over-optimization, not diligence.\nLabel 'not_applicable' if: The task is data-centric (fixed model) or the budget was trivially small.\nLabel 'insufficient_evidence' if: Hyperparameter values are not visible in training scripts, the registry, or the prior-attempt transcripts.",
+      "suggested_actions_hint": "If no attempt has tuned yet: run a small grid/random search over num_leaves (e.g., [63, 127, 255]) and learning_rate (e.g., [0.03, 0.05, 0.1]) on the existing CV framework and record it in cv_scores.json. If a prior attempt already tuned this family with no gain, do NOT re-tune — invest the attempt in a different model family or feature engineering instead.",
+      "supporting_behavior_count": 20,
+      "example_evidence": [
+        "workspace: train_lgbm_v2.py \u2014 'num_leaves': 31, 'learning_rate': 0.05, no further tuning; best single model 0.3024 (playground-series-s3e11/attempt_0)",
+        "[Turn 104] Best ensemble weights: [0.43, 0.40, 0.17] Best CV Score: 0.561332 after jointly retuning base-model hyperparameters (playground-series-s3e1/attempt_1)",
+        "workspace: cv_scores.json shows catboost_tuned cv_mean=0.564775 vs catboost_baseline=0.564821 \u2014 no real tuning occurred (playground-series-s3e1/attempt_0)"
+      ],
+      "vs_old_hand_set": "new",
+      "old_counterpart": ""
+    },
+    {
+      "rubric_id": "no_repeated_identical_crashes",
+      "category": "E",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Avoiding Repeated Identical Crashes",
+      "description": "Agent fails to diagnose and fix the root cause of a recurring error, instead repeatedly re-running the same crashing code and consuming exploration budget on non-productive debug cycles.",
+      "display_description": "Whether the agent diagnoses and fixes the root cause of a crash rather than repeatedly re-running the same failing code.",
+      "natural_language_instruction": "Label 'agent_success' if: When a script crashes, the agent identifies the root cause, applies a fix, and the same error does not recur more than once after the fix.\nLabel 'agent_failure' if: The same error (same exception type and cause, e.g., wrong keyword argument, dtype mismatch, array shape error) appears three or more times across successive turns, indicating the agent is re-running without root-cause diagnosis.\nLabel 'not_applicable' if: No crashes occurred during the trajectory.\nLabel 'insufficient_evidence' if: Error messages and fix attempts are not visible in the transcript.",
+      "suggested_actions_hint": "When a crash recurs after a fix attempt, stop and inspect the full traceback to find the root cause; check library version for API errors (e.g., xgb.early_stop vs callbacks) before re-running.",
+      "supporting_behavior_count": 24,
+      "example_evidence": [
+        "[Turn 13] TypeError: cv() got unexpected kwarg 'early_stopping_rounds'; [Turn 15] same error after first fix (playground-series-s3e11/attempt_0)",
+        "[Turn 26] TypeError: dtype category subtract; [Turn 28] same error repeated (playground-series-s3e16/attempt_3)",
+        "[Turn 103] Fixed xgboost API call once definitively, unblocking all downstream experiments (playground-series-s3e1/attempt_1)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "error_root_cause_resolution"
+    },
+    {
+      "rubric_id": "no_churn_without_pivot",
+      "category": "E",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Avoiding Churn Without Pivoting",
+      "description": "Agent fails to recognize when an experimental axis is saturated and continues running near-identical experiments without CV improvement instead of pivoting to a qualitatively different approach.",
+      "display_description": "Whether the agent recognizes when an experimental axis has plateaued — WITHIN this attempt or ACROSS the best-of-N attempts — and pivots to a substantively different approach rather than repeating near-identical experiments.",
+      "natural_language_instruction": "This is a best-of-N run (N=n_attempts). Assess churn at BOTH scales, using the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/), cv_scores.json, and the submission ledger to reconstruct what earlier attempts already tried.\nLabel 'agent_success' if: Within the attempt, after 2-3 consecutive experiments on the same axis (weight search, seed sweep) yield no meaningful CV improvement (< 0.001 relative) the agent pivots to a different approach (new model family, feature engineering, different stacking architecture); AND, across attempts, this attempt does not merely repeat an axis a prior attempt already saturated — it explores something the beam has not tried.\nLabel 'agent_failure' if: EITHER five or more consecutive experiments within the attempt make no substantive change and no meaningful CV gain (nearly identical cv_scores.json entries or repeated 'No improvement found'), OR this attempt re-runs the same saturated axis a prior attempt already exhausted (e.g., yet another ensemble-weight sweep on the same cached OOF predictions) instead of pivoting — the classic best-of-N beam collapse where multiple attempts converge on the same solution.\nLabel 'not_applicable' if: The agent only ran one or two experiments total and no prior attempt covered this axis.\nLabel 'insufficient_evidence' if: The number and variety of experiments cannot be determined from the transcript or the prior-attempt transcripts are unavailable.",
+      "suggested_actions_hint": "Within an attempt: after three consecutive weight/seed sweeps with < 0.001 CV gain, pivot to a fundamentally different approach. Across attempts: before repeating an axis, check the prior transcripts + cv_scores.json — if an earlier attempt already saturated it, pivot this attempt to a genuinely different model family, feature set, or stacking architecture so the best-of-N beam stays diverse.",
+      "supporting_behavior_count": 22,
+      "example_evidence": [
+        "[Turn 96] 'No improvement found. Current best: 0.4978'; [Turn 114] same message \u2014 ensemble_weights swept repeatedly (playground-series-s3e13/attempt_4)",
+        "[Turn 136] v27 through v40 all output 'Best CV Accuracy: 0.968905' \u2014 same script run 14 times with no changes (playground-series-s5e7/attempt_3)",
+        "[Turn 30] fine grid search Best CV: 0.867188; [Turn 64] all weight searches within 0.001 AUC after 30+ turns (playground-series-s3e24/attempt_4)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "plateau_detection_and_pivot"
+    },
+    {
+      "rubric_id": "suspicious_cv_score_investigation",
+      "category": "A",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Suspicious CV Score Investigation",
+      "description": "Agent fails to investigate CV scores that are implausibly better than all other models (indicating data leakage or in-sample evaluation) and either trusts and submits them or notes them without corrective action.",
+      "display_description": "Whether the agent investigates and correctly handles CV scores that are suspiciously better than all other models (a signal of data leakage or in-sample evaluation).",
+      "natural_language_instruction": "Label 'agent_success' if: When a model's CV score is substantially better than all others (> 20% relative improvement with no architectural explanation), the agent diagnoses whether it is legitimate or an artifact of leakage/in-sample evaluation, and either discards the model or confirms correctness with a separate holdout before using it for submission.\nLabel 'agent_failure' if: An obviously inflated CV score (e.g., perfect 1.0 AUC, RMSE 10x better than all others, correlation 0.96 with training labels) is accepted as valid, recorded in cv_scores.json, and used for submission or downstream ensembling without investigation.\nLabel 'not_applicable' if: No suspiciously anomalous CV scores appeared during the run.\nLabel 'insufficient_evidence' if: CV score values are not visible in the trajectory or workspace.",
+      "suggested_actions_hint": "When a CV score improves by > 20% relative in a single step, immediately check whether the meta-learner was evaluated on its own training data; compute correlation of OOF predictions with true labels \u2014 if > 0.9, it is in-sample leakage.",
+      "supporting_behavior_count": 18,
+      "example_evidence": [
+        "[Turn 36] RF stacking CV 0.029907 flagged as 'too good, likely overfitting' \u2014 agent correctly declined to submit (playground-series-s3e15/attempt_1)",
+        "workspace: cv_scores.json rank_ensemble: 0.9999999952 \u2014 noted as suspicious but never investigated (playground-series-s4e10/attempt_3)",
+        "[Turn 26] gbm meta-learner 0.5866 \u2014 agent immediately accepted a 10% jump with no investigation and submitted (playground-series-s3e5/attempt_3)"
+      ],
+      "vs_old_hand_set": "new",
+      "old_counterpart": ""
+    },
+    {
+      "rubric_id": "no_premature_termination",
+      "category": "E",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Valid Submission Before Finishing",
+      "description": "Agent fails to produce a valid submission file before calling finish, ending the attempt with no scorable entry.",
+      "display_description": "Whether the agent ensures a valid, complete submission file exists at /submission/submission.csv before concluding the attempt.",
+      "natural_language_instruction": "Label 'agent_success' if: At the time of finish, /submission/submission.csv exists, is a valid CSV with the correct target column and row count matching the test set, and contains non-trivial (non-constant, non-NaN) predictions.\nLabel 'agent_failure' if: finish is called before any valid submission is written, or the submission file is empty, binary-corrupted, or contains wrong-competition predictions that make it invalid for the actual leaderboard.\nLabel 'not_applicable' if: The attempt is still in progress and no finish was called.\nLabel 'insufficient_evidence' if: The submission file contents cannot be verified.",
+      "suggested_actions_hint": "Before calling finish, always run: wc -l /submission/submission.csv to confirm correct row count, and head -3 to confirm correct column names and non-trivial values \u2014 if anything is wrong, fix it first.",
+      "supporting_behavior_count": 18,
+      "example_evidence": [
+        "[Turn 20] ACTION finish called with no submission.csv written \u2014 ls /submission shows empty directory (playground-series-s5e5/attempt_0)",
+        "[Turn 43] submission contains loan_status float probabilities instead of num_sold sales counts \u2014 wrong competition (playground-series-s5e1/attempt_3)",
+        "[Turn 88] class distribution: p 2077958, e 6 \u2014 essentially constant prediction detected after submission written (playground-series-s4e8/attempt_0)"
+      ],
+      "vs_old_hand_set": "new",
+      "old_counterpart": ""
+    },
+    {
+      "rubric_id": "domain_appropriate_preprocessing",
+      "category": "C",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Domain-Appropriate Preprocessing",
+      "description": "Agent applies preprocessing steps that are inappropriate for the model type or task (e.g., StandardScaler before tree models, random KFold for time series, zero-imputation of target values), introducing avoidable noise or computational waste.",
+      "display_description": "Whether the agent applies preprocessing steps appropriate to the model type and task (avoiding scaling before tree models, using correct imputation, appropriate CV splits).",
+      "natural_language_instruction": "Label 'agent_success' if: Preprocessing choices are appropriate: no feature scaling before tree-based models, correct imputation strategy for the target distribution, and CV split type matches the task (stratified for imbalanced classification, time-based for time series).\nLabel 'agent_failure' if: StandardScaler is applied before LightGBM/XGBoost/CatBoost, target NaN values are imputed with 0 for a forecasting task, or random KFold is used for a time-series problem where temporal leakage would inflate CV scores.\nLabel 'not_applicable' if: Only linear models were used (where scaling is appropriate) or there were no categorical/missing-value features.\nLabel 'insufficient_evidence' if: Preprocessing code is not visible.",
+      "suggested_actions_hint": "Remove any StandardScaler from tree-model pipelines; for time-series CV use TimeSeriesSplit or date-based folds; for missing target values use group-mean imputation or row removal rather than zero-fill.",
+      "supporting_behavior_count": 12,
+      "example_evidence": [
+        "workspace: preprocess.py \u2014 StandardScaler applied to all 15 features including binary cols before LGBMRegressor (playground-series-s3e11/attempt_0)",
+        "[Turn 53] KFold(shuffle=True) used for time-series forecasting competition \u2014 leaks future data into training folds (playground-series-s5e1/attempt_0)",
+        "[Turn 18] 'Imputing 8871 missing target values with 0' \u2014 biases model for MAPE-evaluated forecasting (playground-series-s5e1/attempt_0)"
+      ],
+      "vs_old_hand_set": "new-ish",
+      "old_counterpart": "loosely incorrect_library_use"
+    },
+    {
+      "rubric_id": "timeout_aware_experiment_design",
+      "category": "E",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Timeout-Aware Experiment Design",
+      "description": "Agent launches training jobs without estimating runtime, causing repeated mid-execution kills that produce no usable artifacts and waste the compute budget.",
+      "display_description": "Whether the agent designs experiments to complete within available time budgets, using prototyping or parameter adjustment rather than launching full training jobs that are repeatedly killed.",
+      "natural_language_instruction": "Label 'agent_success' if: Before launching expensive training jobs (large datasets, many folds, many boosting rounds), the agent either runs a single-fold prototype to estimate runtime, or explicitly limits parameters (sample size, n_folds, n_estimators) to fit within the time budget \u2014 and no major training job is killed before saving results.\nLabel 'agent_failure' if: Two or more training scripts are interrupted with Ctrl-C or timeout before saving any useful predictions or CV scores, indicating the agent launched jobs without verifying they would complete.\nLabel 'not_applicable' if: All training jobs completed successfully without interruption.\nLabel 'insufficient_evidence' if: Job runtimes and completion status are not visible in the transcript.",
+      "suggested_actions_hint": "Before a full CV run on large data, time a single fold (timeout 120 python train.py --n_folds 1); if it takes > 60s, reduce sample size, n_estimators, or n_folds to ensure the full run completes within budget.",
+      "supporting_behavior_count": 19,
+      "example_evidence": [
+        "[Turn 38] timeout 600 python train_catboost.py; [Turn 39] C-c \u2014 killed before completion, no artifact saved (playground-series-s3e19/attempt_0)",
+        "[Turn 22] C-c interrupting CatBoost; [Turn 31] C-c interrupting CatBoost again \u2014 two kills, no CatBoost CV score (playground-series-s4e9/attempt_0)",
+        "[Turn 23] single-fold proxy search took 30s per config, agent launched full CV only on best config (playground-series-s5e5/attempt_2)"
+      ],
+      "vs_old_hand_set": "recovers",
+      "old_counterpart": "compute_budget_scoping"
+    },
+    {
+      "rubric_id": "feature_engineering_investment",
+      "category": "C",
+      "grounding": "artifact",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Feature Engineering Investment",
+      "description": "Agent fails to invest in domain-relevant feature engineering, submitting with only raw features when known high-value transformations (interaction terms, target encoding, lag features, etc.) are available and appropriate.",
+      "display_description": "Whether the agent invests in at least one round of principled feature engineering beyond raw input columns, accounting for feature work already done in earlier best-of-N attempts.",
+      "natural_language_instruction": "This is a best-of-N run (N=n_attempts). Consult the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/), features.py/preprocess.py in the persistent workspace, and cv_scores.json to see what feature engineering earlier attempts already tried and whether it helped.\nLabel 'agent_success' if: EITHER the workspace contains a feature-engineering script/module adding at least 3 non-trivial derived features (interactions, target encodings, lag features, domain transforms) with a CV comparison showing improvement over the raw-feature baseline, OR this attempt sensibly builds on / diverges from the feature work prior attempts established (e.g., a prior attempt found feature set A helped, so this attempt reuses A and explores a different modeling axis, or a prior attempt found FE gave no lift so this attempt reasonably invests its budget elsewhere).\nLabel 'agent_failure' if: All training scripts use only raw input columns (label-encoding/fillna only) and NO attempt — this one or an earlier one — engineered features despite a non-trivial feature space; OR this attempt merely re-derives the exact same features a prior attempt already built and validated, adding nothing new to the beam.\nLabel 'not_applicable' if: The competition is data-centric (fixed model) or the feature space is already maximal (e.g., pre-extracted embeddings).\nLabel 'insufficient_evidence' if: Feature-engineering code and the prior-attempt transcripts cannot be inspected.",
+      "suggested_actions_hint": "If no attempt has engineered features yet: create features.py with interaction terms between the top-2 important features, in-fold target-encoding for high-cardinality categoricals, and domain transforms (e.g., log for skewed features), validated by CV. If a prior attempt already established a good feature set, reuse it and spend this attempt on a different axis (model family, ensembling) rather than re-deriving the same features.",
+      "supporting_behavior_count": 15,
+      "example_evidence": [
+        "workspace: data.py \u2014 extract_date_features creates only calendar columns, no lag or rolling windows for a time-series competition (playground-series-s3e19/attempt_0)",
+        "[Turn 24] Mean CV RMSE: 13.0157 with XGBoost + 7 engineered interaction/bin features vs 13.135 baseline (playground-series-s5e4/attempt_1)",
+        "[Turn 62] feature ablation: dropping density columns improved CV MedAE from 0.5487 to 0.5262 (playground-series-s3e25/attempt_1)"
+      ],
+      "vs_old_hand_set": "new",
+      "old_counterpart": ""
+    },
+    {
+      "rubric_id": "metric_bug_detection",
+      "category": "A",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Metric Calculation Bug Detection",
+      "description": "Agent fails to detect or investigate obviously impossible or inconsistent CV scores caused by bugs in the metric calculation code (e.g., double log-transformation, wrong target passed).",
+      "display_description": "Whether the agent detects and corrects bugs in metric calculation code before reporting or acting on CV scores.",
+      "natural_language_instruction": "Label 'agent_success' if: When a CV score appears implausibly low or inconsistent with prior results (e.g., RMSLE of 0.01 when all prior models score ~0.13), the agent identifies and fixes the root cause in the metric code before using the score for model selection.\nLabel 'agent_failure' if: An obviously buggy metric (double log-transform, wrong target, train-set RMSE) produces a clearly impossible CV score that the agent reports as valid and uses for multiple turns before catching it (if ever).\nLabel 'not_applicable' if: No metric bugs occurred and all CV scores were plausible.\nLabel 'insufficient_evidence' if: The metric calculation code is not visible.",
+      "suggested_actions_hint": "After computing a CV score, sanity-check it against competition baselines and prior runs; if it improves by > 30% in a single step with no structural change, print and inspect the raw predictions and targets before proceeding.",
+      "supporting_behavior_count": 8,
+      "example_evidence": [
+        "[Turn 18] CV Mean: 0.010432 \u2014 double log1p bug; agent ran 3 full training passes before catching it at Turn 43 (house-prices-advanced-regression-techniques/attempt_0)",
+        "[Turn 129] isotonic calibration with wrong target produced CV 0.1660 \u2014 logged as legitimate result (playground-series-s3e13/attempt_4)",
+        "[Turn 47] diagnosed OOF initialization bug (np.zeros inflating SMAPE to 50) before using ensemble scores (playground-series-s3e19/attempt_1)"
+      ],
+      "vs_old_hand_set": "new",
+      "old_counterpart": ""
+    },
+    {
+      "rubric_id": "over_optimization",
+      "category": "E",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Over-Optimization Without Significant Gains",
+      "display_description": "Whether the agent avoids burning a disproportionate share of turns on hyperparameter tuning and ensemble-weight search that yields no statistically meaningful CV improvement, judged within the current attempt AND across the best-of-N attempts.",
+      "description": "Agent spends many turns micro-optimizing hyperparameters or ensemble weights for CV gains that are within the noise floor (smaller than cv_std), squandering the exploration budget on diminishing returns instead of a qualitatively different approach or a fresh attempt.",
+      "natural_language_instruction": "This is a best-of-N run (N=n_attempts); the submitted result is the MAX over attempts, so grinding for a 4th-decimal CV gain rarely changes the outcome while it burns budget that a different approach could use. 'Statistically meaningful' means the CV gain exceeds the fold-to-fold noise: compare the improvement to cv_std in cv_scores.json (a rule of thumb: a gain smaller than ~0.25-0.5x cv_std, or < ~0.001 relative when std is unavailable, is inside the noise). Use the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/) and cv_scores.json to judge cumulative effort across attempts, not just this one.\nLabel 'agent_success' if: Time spent on hyperparameter tuning / ensemble-weight search is proportionate — the agent stops optimizing an axis once gains fall within cv_std and redirects effort to a new model family, features, or a fresh attempt; the beam's total tuning effort is not dominated by noise-level micro-optimization.\nLabel 'agent_failure' if: A large share of turns (roughly a third or more of the attempt, or the bulk of multiple attempts) goes to HPO or ensemble-weight tuning whose cumulative CV gain is within the noise floor (< cv_std, e.g. AUC moving 0.8671->0.8672 across 30+ turns, or repeated Optuna runs each landing within std of the last) — effort that best-of-N makes almost worthless.\nLabel 'not_applicable' if: The agent did little or no hyperparameter/ensemble tuning, or tuning produced clearly meaningful (> cv_std) gains.\nLabel 'insufficient_evidence' if: cv_std / CV deltas or the turn-level breakdown of effort cannot be recovered from the transcript, workspace, or prior-attempt transcripts.",
+      "suggested_actions_hint": "Before another round of HPO or weight search, check the CV gain of the last few rounds against cv_std in cv_scores.json; if gains are within the noise floor, stop tuning and spend the remaining budget (or the next best-of-N attempt) on a genuinely different model family, richer features, or a different problem framing.",
+      "supporting_behavior_count": 0,
+      "example_evidence": [
+        "[hand-curated] beam collapse on s3e13: attempts 1-3 each re-tuned ensemble weights over the same cached OOF preds, CV flat 0.4623->0.4661 (< cv_std) — best-of-5 wasted on noise-level micro-optimization",
+        "[hand-curated] 30+ turns of fine ensemble-weight grid search moving AUC within 0.001 (s3e24/attempt_4) — over the cv_std noise floor the gain is not real"
+      ],
+      "vs_old_hand_set": "hand_curated_xattempt",
+      "old_counterpart": ""
+    },
+    {
+      "rubric_id": "single_model_class_hedging",
+      "category": "B",
+      "grounding": "trajectory",
+      "applicable_datasets": [
+        "dspredict-easy",
+        "dspredict-hard"
+      ],
+      "display_name": "Hedging Across Best-of-N With Diverse Model Classes",
+      "display_description": "Whether the best-of-N attempts hedge across DIFFERENT modeling classes rather than converging on the same solution near finish — using the max-over-N structure to try a distinct approach (even a second-best one) instead of duplicating the leading attempt.",
+      "description": "Agent wastes the best-of-N budget by having more than two attempts submit essentially the same modeling solution (same family, same features, near-identical predictions) near the end, forgoing the free diversification that best-of-N rewards.",
+      "natural_language_instruction": "This is a best-of-N run (N=n_attempts) and the SUBMITTED result is the MAX over attempts, so a genuinely different modeling class that ends up second-best costs nothing, while a duplicate of an existing attempt wastes one of the N shots. Judge this ACROSS attempts using the accumulated prior-attempt transcripts (traj_a{attempt}_t{turn}.txt in /reviewer/), the final submissions / cached test predictions, and cv_scores.json. Only assess once enough attempts exist to see convergence (typically attempt index >= 2).\nLabel 'agent_success' if: The attempts hedge across distinct modeling classes/architectures (e.g., GBDT ensemble in one, a neural net or a linear/kernel model or a very different feature representation in another), so the best-of-N beam covers meaningfully different solutions rather than one repeated recipe.\nLabel 'agent_failure' if: More than two of the attempts converge near finish on essentially the same solution — same model family and features, near-identical final predictions or CV, often reusing the same cached OOF/test preds — instead of at least one attempt deliberately trying a different modeling class to exploit best-of-N.\nLabel 'not_applicable' if: Fewer than three attempts have completed, or the task is data-centric / single-model by nature so diversifying the model class is not meaningful.\nLabel 'insufficient_evidence' if: The final solutions of the prior attempts cannot be compared from the transcripts, submissions, or registry.",
+      "suggested_actions_hint": "If two or more prior attempts already converged on the same modeling class near finish, deliberately devote THIS attempt to a different class — a different model family, a neural approach, a distinct feature representation, or a different problem framing — even if you expect it to be slightly worse; best-of-N keeps the best, so a diverse attempt is near-free upside and duplicating the leader is a wasted shot.",
+      "supporting_behavior_count": 0,
+      "example_evidence": [
+        "[hand-curated] s3e13 attempts 1==2 identical and 3 near-identical — all GBDT ensembles on the same cached preds; a single distinct model class (e.g. an MLP or a different feature set) in one attempt could have widened the beam for free",
+        "[hand-curated] cmp2 beam-collapse pattern: 3/5 attempts identical on s4e6/s3e9/s3e1/s5e8 — best-of-N advantage forfeited by convergence"
+      ],
+      "vs_old_hand_set": "hand_curated_xattempt",
+      "old_counterpart": ""
+    }
+  ]
+}
