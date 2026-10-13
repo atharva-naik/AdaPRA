@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdaPRA: Process Reward Agents with Adaptive Rubrics for Data Science</title>
+  <meta name="description" content="AdaPRA supervises a data science agent with a process reward agent that checks its code and workspace against rubrics discovered from past runs and adapted to each task. It raises an 80B open-weights agent's mean Kaggle percentile by 24.5 points on DSPredict-Easy and 14.8 points on DSPredict-Hard.">
+  <meta name="theme-color" content="#0f766e">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-soft: #14b8a6;
+      --accent: #6366f1;
+      --ink: #0f172a;
+      --sub: #475569;
+      --line: #e2e8f0;
+      --bg-soft: #f6fbfa;
+    }
+    body { background: #fff; color: var(--ink); font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+
+    /* HERO */
+    .hero-banner {
+      position: relative;
+      padding: 4.5rem 1.5rem 3rem;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(20,184,166,0.13), transparent 60%),
+        radial-gradient(800px 400px at 100% 0%, rgba(99,102,241,0.12), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #f6fbfa 100%);
+      border-bottom: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .hero-banner::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 80%);
+      pointer-events: none;
+    }
+    .hero-banner > .container { position: relative; }
+    .pub-eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.35rem 0.9rem; border-radius: 999px;
+      background: rgba(20,184,166,0.10); color: var(--primary);
+      font-weight: 600; font-size: 0.85rem; letter-spacing: 0.04em;
+      border: 1px solid rgba(20,184,166,0.28);
+    }
+    .pub-title {
+      font-weight: 800 !important; letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #042f2e 0%, #0f766e 45%, #6366f1 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-top: 0.9rem !important; margin-bottom: 0.6rem !important;
+      font-size: clamp(1.85rem, 4.2vw, 3rem) !important;
+      line-height: 1.1 !important;
+    }
+    .pub-subtitle { color: var(--sub); font-weight: 500; max-width: 880px; margin: 0 auto 1rem; font-size: 1.08rem; }
+    .pub-authors { margin: 1.1rem auto 0.5rem; max-width: 940px; line-height: 1.9; color: #1f2937; }
+    .pub-affil { color: var(--sub); font-size: 0.95rem; margin-top: 0.4rem; }
+    .pub-links { margin-top: 1.4rem; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+    .pub-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.55rem 1.1rem; border-radius: 999px;
+      background: #0f172a; color: #fff !important; font-weight: 600;
+      font-size: 0.95rem; text-decoration: none;
+      box-shadow: 0 4px 14px rgba(15,23,42,0.18);
+      transition: all .2s; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .pub-btn:hover { transform: translateY(-2px); background: var(--primary); }
+    .pub-btn.outline { background: #fff; color: var(--ink) !important; border: 1px solid var(--line); box-shadow: none; }
+    .pub-btn.outline:hover { background: var(--bg-soft); transform: translateY(-2px); }
+
+    /* METRICS STRIP */
+    .metrics-strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1rem; margin-top: 2.4rem; }
+    @media (max-width: 768px) { .metrics-strip { grid-template-columns: repeat(2,1fr); } }
+    .metric-card {
+      background: #fff; border: 1px solid var(--line); border-radius: 18px;
+      padding: 1.1rem 1.2rem; text-align: center;
+      box-shadow: 0 4px 14px rgba(15,23,42,0.04); transition: all .25s;
+    }
+    .metric-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15,118,110,0.12); border-color: rgba(15,118,110,0.35); }
+    .metric-num {
+      font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #0f766e, #6366f1);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .metric-label { color: var(--sub); font-size: 0.86rem; font-weight: 500; margin-top: 0.2rem; }
+
+    /* SECTION TITLES */
+    .section { padding: 3rem 1.5rem; }
+    .rm-section-title { font-weight: 800 !important; letter-spacing: -0.01em; color: var(--ink); position: relative; display: inline-block; }
+    .rm-section-title::after {
+      content: ""; display: block; height: 4px; width: 56px; margin: 0.6rem auto 0;
+      border-radius: 4px; background: linear-gradient(90deg, var(--primary-soft), var(--accent));
+    }
+    .rm-eyebrow { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.78rem; margin-bottom: 0.4rem; display: block; }
+    .rm-section-sub { color: var(--sub); max-width: 880px; margin: 0.8rem auto 0; }
+
+    /* ABSTRACT */
+    .abstract-box {
+      background: linear-gradient(180deg, #f0fdfa 0%, #ccfbf1 100%);
+      border: 1px solid #99f6e4; border-radius: 22px;
+      padding: 2rem 2.2rem; box-shadow: 0 10px 30px rgba(15,118,110,0.06); position: relative;
+    }
+    .abstract-box::before {
+      content: "TL;DR"; position: absolute; top: -12px; left: 22px;
+      background: linear-gradient(120deg, var(--primary-soft), var(--accent));
+      color: #fff; padding: 0.25rem 0.7rem; border-radius: 999px;
+      font-weight: 700; font-size: 0.72rem; letter-spacing: 0.16em;
+    }
+    .abstract-box p { color: #1f2937; line-height: 1.75; margin-bottom: 0.8rem; }
+    .hl { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 6px; font-weight: 700; }
+    .hl-green  { background: rgba(16,185,129,0.15); color: #065f46; }
+    .hl-indigo { background: rgba(99,102,241,0.15); color: #3730a3; }
+    .hl-amber  { background: rgba(245,158,11,0.15); color: #92400e; }
+
+    /* FIGURE CARDS */
+    .figure-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 1.6rem; box-shadow: 0 10px 30px rgba(15,23,42,0.04); }
+    .figure-card img { width: 100%; height: auto; display: block; border-radius: 10px; }
+    .figure-caption { margin-top: 1rem; font-size: 0.95rem; color: var(--sub); text-align: center; line-height: 1.6; }
+    .figure-caption b { color: var(--ink); }
+
+    /* RESULTS TABLE */
+    .results-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    .results-table th {
+      background: linear-gradient(180deg, #f0fdfa, #ccfbf1);
+      color: var(--primary); font-weight: 700; padding: 0.7rem 0.9rem;
+      border-bottom: 2px solid #99f6e4; text-align: center; white-space: nowrap;
+    }
+    .results-table th:first-child, .results-table td:first-child { text-align: left; }
+    .results-table td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line); text-align: center; }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr:hover td { background: #f8fafc; }
+    .results-table .ours td { background: rgba(20,184,166,0.07); }
+    .results-table .best { font-weight: 800; color: var(--primary); }
+    .results-table .group-header td {
+      background: #f1f5f9; font-weight: 700; color: var(--sub); text-align: left;
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.5rem 0.9rem;
+    }
+    .results-table .sep { border-left: 2px solid var(--line); }
+    .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(15,23,42,0.04); }
+
+    /* METHOD CARDS */
+    .method-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 1.4rem; transition: all .25s; box-shadow: 0 4px 14px rgba(15,23,42,0.04); }
+    .method-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(15,118,110,0.12); }
+    .method-icon { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem; margin-bottom: 0.8rem; }
+    .ic-teal   { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+    .ic-indigo { background: linear-gradient(135deg, #4f46e5, #818cf8); }
+    .ic-amber  { background: linear-gradient(135deg, #d97706, #f59e0b); }
+    .ic-rose   { background: linear-gradient(135deg, #be123c, #fb7185); }
+    .method-card h4 { font-weight: 800; font-size: 1.05rem; margin-bottom: 0.4rem; color: var(--ink); }
+    .method-card p  { color: var(--sub); font-size: 0.92rem; line-height: 1.55; }
+    .gain { font-size: 1.6rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
+    .gain small { font-size: 0.85rem; color: var(--sub); font-weight: 600; }
+
+    /* FINDING CARDS */
+    .finding-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.4rem; box-shadow: 0 4px 14px rgba(15,23,42,0.04); display: flex; gap: 1rem; align-items: flex-start; }
+    .finding-num { min-width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-soft), var(--accent)); color: #fff; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .finding-card p { color: var(--sub); font-size: 0.93rem; line-height: 1.6; margin: 0; }
+    .finding-card strong { color: var(--ink); }
+
+    /* BIB */
+    .bib-box { background: #0f172a; color: #e2e8f0; border-radius: 16px; padding: 1.4rem 1.6rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.7; position: relative; overflow-x: auto; white-space: pre; }
+    .bib-copy { position: absolute; top: 0.8rem; right: 0.8rem; background: rgba(255,255,255,0.1); border: none; color: #94a3b8; padding: 0.3rem 0.7rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: all .2s; font-family: 'Inter', sans-serif; }
+    .bib-copy:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+    /* GRID HELPERS */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; align-items: start; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.2rem; }
+    @media (max-width: 1024px) { .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px)  { .grid-2,.grid-3,.grid-4 { grid-template-columns: 1fr; } }
+
+    /* FOOTER */
+    .site-footer { background: #0f172a; color: #94a3b8; padding: 2rem 1.5rem; text-align: center; font-size: 0.9rem; }
+    .site-footer a { color: #5eead4; text-decoration: none; }
+    .site-footer a:hover { color: #99f6e4; }
+    .section-divider { height: 1px; background: var(--line); margin: 0; }
+    .note { color: var(--sub); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<section class="hero-banner">
+  <div class="container has-text-centered">
+    <div>
+      <span class="pub-eyebrow"><i class="fas fa-flask" style="font-size:0.8rem"></i> Preprint</span>
+    </div>
+    <h1 class="pub-title">AdaPRA: Process Reward Agents with<br>Adaptive Rubrics for Data Science</h1>
+    <p class="pub-subtitle">
+      A process reward agent that checks a data science agent's code, outputs, and trajectory against rubrics
+      discovered from past runs and adapted to each task, so the agent fixes errors while it still can.
+    </p>
+
+    <div class="pub-authors has-text-centered">
+      Atharva Naik<sup>1</sup> &nbsp;·&nbsp; Vivek Chari<sup>2</sup> &nbsp;·&nbsp; Pol Llado<sup>2</sup> &nbsp;·&nbsp;
+      Daniel Fried<sup>1</sup> &nbsp;·&nbsp; Carolyn Rosé<sup>1</sup> &nbsp;·&nbsp;
+      Benjamin Van Durme<sup>2</sup> &nbsp;·&nbsp; Sam Thomson<sup>2</sup> &nbsp;·&nbsp; Justin Svegliato<sup>2</sup>
+    </div>
+    <p class="pub-affil"><sup>1</sup>Carnegie Mellon University &nbsp;&nbsp; <sup>2</sup>Microsoft</p>
+
+    <div class="pub-links">
+      <!-- TODO: replace with the arXiv link once posted -->
+      <a href="#" class="pub-btn outline" title="Coming soon">
+        <span class="icon"><i class="ai ai-arxiv"></i></span> arXiv (coming soon)
+      </a>
+      <a href="https://github.com/atharva-naik/AdaPRA" class="pub-btn outline" target="_blank">
+        <span class="icon"><i class="fab fa-github"></i></span> Code
+      </a>
+      <a href="#results" class="pub-btn">
+        <span class="icon"><i class="fas fa-chart-bar"></i></span> Results
+      </a>
+      <a href="#bibtex" class="pub-btn outline">
+        <span class="icon"><i class="fas fa-quote-right"></i></span> BibTeX
+      </a>
+    </div>
+
+    <!-- KEY METRICS -->
+    <div class="metrics-strip">
+      <div class="metric-card">
+        <div class="metric-num">+24.5</div>
+        <div class="metric-label">Mean Kaggle percentile<br>DSPredict-Easy (44.5 → 69.0)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">+14.8</div>
+        <div class="metric-label">Mean Kaggle percentile<br>DSPredict-Hard (21.3 → 36.1)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">≥ GPT-5.1</div>
+        <div class="metric-label">80B open-weights agent matches<br>or exceeds GPT-5.1 (high)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num">Easy → Hard</div>
+        <div class="metric-label">Rubrics mined on tabular tasks<br>transfer to vision, text, audio</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ABSTRACT ===== -->
+<section class="section" style="background: var(--bg-soft);">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Abstract</span>
+      <h2 class="title rm-section-title is-3">What is AdaPRA?</h2>
+    </div>
+    <div class="abstract-box" style="max-width:900px;margin:0 auto">
+      <p>
+        Data science agents can automate end-to-end machine learning workflows, yet they remain far from competitive on human leaderboards.
+        Agents make <span class="hl hl-amber">process errors</span> such as insufficient exploration, unsound validation, coding bugs,
+        and poor use of a fixed budget (re-running the same exploratory data analysis and baseline models in every attempt).
+      </p>
+      <p>
+        We propose AdaPRA: a <span class="hl hl-indigo">persistent harness</span> that accumulates knowledge across attempts on the same task,
+        with <span class="hl hl-indigo">rubric-guided process supervision</span> that identifies and corrects errors.
+        Our process reward agent audits the agent's trajectory and workspace by executing checks, and adapts its rubrics to each task.
+        Rubrics seeded from easier tasks generalize to harder tasks, and rubric adaptation further improves performance.
+      </p>
+      <p>
+        With five attempts per task, AdaPRA improves an 80B Qwen model's leaderboard percentile by
+        <span class="hl hl-green">24.5 points</span> on DSPredict-Easy and <span class="hl hl-green">14.8 points</span> on DSPredict-Hard.
+        Supervision with rubrics mined from one base model's runs also improves another (DeepSeek-V3.2), and AdaPRA beats DataPRM,
+        a competitive PRM for data science.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== TEASER ===== -->
+<section class="section">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Motivation</span>
+      <h2 class="title rm-section-title is-3">Silent Process Errors</h2>
+      <p class="rm-section-sub">
+        Many process errors still produce a valid submission and leave no sign in the trajectory,
+        so a judge that only reads the transcript misses them. AdaPRA's process reward agent runs checks on the agent's files instead.
+      </p>
+    </div>
+    <div class="figure-card" style="max-width:620px;margin:0 auto">
+      <img src="static/images/teaser.png" alt="AdaPRA catches a silent error in a speech-command classification task">
+      <p class="figure-caption"><b>Figure 1.</b> The agent must classify voice clips into 12 commands. A wrong file path makes every test clip load as silent audio,
+        so every prediction is “unknown” even though the trajectory shows no errors. AdaPRA checks the predictions file under the
+        <i>Submission Integrity</i> rubric, finds the cause, and the agent fixes it.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== METHOD ===== -->
+<section class="section" style="background: var(--bg-soft);">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Method</span>
+      <h2 class="title rm-section-title is-3">How AdaPRA Works</h2>
+      <p class="rm-section-sub">
+        A persistent harness keeps the agent's workspace across attempts; a process reward agent (PRA) reviews the attempt every
+        few turns, writes and runs its own checks against the agent's files, and reports only the relevant failing rubrics.
+      </p>
+    </div>
+
+    <div class="figure-card" style="max-width:1000px;margin:0 auto 2.5rem">
+      <img src="static/images/method.png" alt="AdaPRA overview">
+      <p class="figure-caption"><b>Figure 2.</b> AdaPRA overview. The agent works in a workspace that persists across attempts. During each attempt,
+        the PRA reads the trajectory and workspace, runs check scripts in its own workspace, injects feedback on failing rubrics into the agent's
+        trajectory, and adds, updates, or retires rubrics in the per-task store.</p>
+    </div>
+
+    <div class="grid-4">
+      <div class="method-card">
+        <div class="method-icon ic-teal"><i class="fas fa-folder-open"></i></div>
+        <h4>Persistent Harness</h4>
+        <p>One workspace per task across all attempts: notes, features, models, and validation results carry over, so later attempts build on earlier ones instead of starting from scratch.</p>
+      </div>
+      <div class="method-card">
+        <div class="method-icon ic-indigo"><i class="fas fa-terminal"></i></div>
+        <h4>Code-Grounded PRA</h4>
+        <p>The PRA is itself an agent with a terminal. It recomputes CV scores, inspects predictions, and verifies the agent's claims against the read-only workspace before scoring each rubric.</p>
+      </div>
+      <div class="method-card">
+        <div class="method-icon ic-amber"><i class="fas fa-magnifying-glass-chart"></i></div>
+        <h4>Rubric Discovery</h4>
+        <p>Seed rubrics are mined offline from past runs by contrasting strong and weak attempts on the same task, using both the trajectory and the files each attempt leaves behind.</p>
+      </div>
+      <div class="method-card">
+        <div class="method-icon ic-rose"><i class="fas fa-wand-magic-sparkles"></i></div>
+        <h4>Adaptive Rubrics</h4>
+        <p>The PRA adds, updates, and retires rubrics in a per-task store, turning task-specific pitfalls found in one attempt into explicit criteria for later reviews.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== RUBRIC DISCOVERY ===== -->
+<section class="section">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Rubric Discovery</span>
+      <h2 class="title rm-section-title is-3">Mining Rubrics from Past Attempts</h2>
+    </div>
+    <div class="grid-2" style="max-width:1000px;margin:0 auto">
+      <div class="figure-card">
+        <img src="static/images/rubric_discovery.png" alt="Offline rubric discovery pipeline">
+        <p class="figure-caption"><b>Figure 3.</b> Offline rubric discovery: an LLM judge extracts good behaviors and issues from ranked attempts,
+          and a second call clusters them into a mutually exclusive, collectively exhaustive set of seed rubrics.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="finding-card">
+          <div class="finding-num">1</div>
+          <p><strong>Contrastive.</strong> Each attempt is judged relative to the other attempts on the same task, so task difficulty is held fixed.</p>
+        </div>
+        <div class="finding-card">
+          <div class="finding-num">2</div>
+          <p><strong>Trajectory + workspace.</strong> Most issues are visible only in the trajectory (344 of 564), while most good behaviors can be checked from the workspace alone (235 of 342), so discovery needs both views.</p>
+        </div>
+        <div class="finding-card">
+          <div class="finding-num">3</div>
+          <p><strong>Compact seed set.</strong> 906 mined behaviors become 19 seed rubrics covering validation, model exploration and selection, preprocessing, submission integrity, and efficiency.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== RESULTS ===== -->
+<section class="section" id="results" style="background: var(--bg-soft);">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Results</span>
+      <h2 class="title rm-section-title is-3">DSPredict-Easy and DSPredict-Hard</h2>
+      <p class="rm-section-sub">
+        Kaggle leaderboard results with Qwen3-Coder-Next (80B) as the base agent and five attempts per task.
+        <b>Pct.</b> is the mean leaderboard percentile. All rates use a fixed denominator over every task, so failing on a task counts as zero.
+      </p>
+    </div>
+
+    <h3 class="title is-5" style="margin-bottom:1rem">DSPredict-Easy <span style="font-weight:400;color:var(--sub);font-size:0.9rem">(38 competitions · mostly tabular)</span></h3>
+    <div class="table-wrap" style="margin-bottom:2.5rem">
+      <table class="results-table">
+        <thead>
+          <tr><th rowspan="2">Method</th><th colspan="4">Best attempt</th><th colspan="4" class="sep">Per attempt (mean)</th></tr>
+          <tr><th>Pct.</th><th>Valid</th><th>&gt;Median</th><th>Medal</th><th class="sep">Pct.</th><th>Valid</th><th>&gt;Median</th><th>Medal</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Qwen3-Coder-Next + DSGym</td><td>44.5</td><td>76.3</td><td>50.0</td><td>2.6</td><td class="sep">36.3</td><td>41.0</td><td>35.6</td><td>1.1</td></tr>
+          <tr><td>Qwen3-Coder-Next + our harness</td><td>60.8</td><td>100.0</td><td>71.1</td><td class="best">7.9</td><td class="sep">51.3</td><td>84.5</td><td>53.9</td><td>2.6</td></tr>
+          <tr class="group-header"><td colspan="9">Process supervision on top of our harness</td></tr>
+          <tr><td>+ DataPRM</td><td>54.6</td><td>100.0</td><td>65.8</td><td>5.3</td><td class="sep">44.8</td><td>100.0</td><td>44.6</td><td>2.1</td></tr>
+          <tr class="ours"><td><b>+ PRA + adaptive rubrics (AdaPRA)</b></td><td class="best">69.0</td><td>100.0</td><td class="best">86.8</td><td class="best">7.9</td><td class="sep best">61.0</td><td>100.0</td><td>73.2</td><td>3.7</td></tr>
+          <tr><td>&nbsp;&nbsp;− adaptive rubrics</td><td>67.3</td><td>100.0</td><td>86.8</td><td class="best">7.9</td><td class="sep">58.8</td><td>99.5</td><td>72.5</td><td class="best">4.2</td></tr>
+          <tr><td>&nbsp;&nbsp;− PRA (no code execution)</td><td>63.0</td><td>100.0</td><td>86.8</td><td>2.6</td><td class="sep">57.8</td><td>100.0</td><td>73.7</td><td>2.1</td></tr>
+          <tr class="group-header"><td colspan="9">Single-attempt references (reported by DSGym)</td></tr>
+          <tr><td>Qwen3-Coder-480B + DSGym</td><td>–</td><td>–</td><td>–</td><td>–</td><td class="sep">37.1</td><td>86.5</td><td>33.3</td><td>–</td></tr>
+          <tr><td>GPT-5.1 (high) + DSGym</td><td>–</td><td>–</td><td>–</td><td>–</td><td class="sep">60.4</td><td>100.0</td><td class="best">75.0</td><td>–</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="title is-5" style="margin-bottom:1rem">DSPredict-Hard <span style="font-weight:400;color:var(--sub);font-size:0.9rem">(54 competitions · tabular, vision, text, audio, molecular)</span></h3>
+    <div class="table-wrap" style="margin-bottom:1rem">
+      <table class="results-table">
+        <thead>
+          <tr><th rowspan="2">Method</th><th colspan="4">Best attempt</th><th colspan="4" class="sep">Per attempt (mean)</th></tr>
+          <tr><th>Pct.</th><th>Valid</th><th>&gt;Median</th><th>Medal</th><th class="sep">Pct.</th><th>Valid</th><th>&gt;Median</th><th>Medal</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Qwen3-Coder-Next + DSGym</td><td>21.3</td><td>68.5</td><td>11.1</td><td>3.7</td><td class="sep">25.2</td><td>36.3</td><td>11.8</td><td>3.0</td></tr>
+          <tr><td>Qwen3-Coder-Next + our harness</td><td>25.5</td><td>81.5</td><td>18.5</td><td>5.6</td><td class="sep">26.2</td><td>64.8</td><td>14.4</td><td>3.7</td></tr>
+          <tr class="group-header"><td colspan="9">Process supervision on top of our harness</td></tr>
+          <tr><td>+ DataPRM</td><td>23.1</td><td>88.9</td><td>14.8</td><td>3.7</td><td class="sep">21.3</td><td>79.3</td><td>12.8</td><td>3.7</td></tr>
+          <tr class="ours"><td><b>+ PRA + adaptive rubrics (AdaPRA)</b></td><td class="best">36.1</td><td class="best">90.7</td><td class="best">33.3</td><td>5.6</td><td class="sep best">32.1</td><td>86.3</td><td class="best">24.1</td><td>4.1</td></tr>
+          <tr><td>&nbsp;&nbsp;− adaptive rubrics</td><td>31.8</td><td>88.9</td><td>22.2</td><td>5.6</td><td class="sep">30.2</td><td class="best">87.8</td><td>17.5</td><td>4.4</td></tr>
+          <tr><td>&nbsp;&nbsp;− PRA (no code execution)</td><td>31.8</td><td class="best">90.7</td><td>25.9</td><td class="best">9.3</td><td class="sep">30.9</td><td>83.0</td><td>19.8</td><td class="best">8.1</td></tr>
+          <tr class="group-header"><td colspan="9">Single-attempt references (reported by DSGym)</td></tr>
+          <tr><td>Qwen3-Coder-480B + DSGym</td><td>–</td><td>–</td><td>–</td><td>–</td><td class="sep">–</td><td>66.7</td><td>5.9</td><td>2.4</td></tr>
+          <tr><td>GPT-5.1 (high) + DSGym</td><td>–</td><td>–</td><td>–</td><td>–</td><td class="sep">–</td><td>85.7</td><td>14.3</td><td>4.8</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">DSGym's single-attempt references have no best-attempt results; their Easy percentile is rescaled to our fixed denominator. DSGym does not report percentiles on DSPredict-Hard or medal rates on DSPredict-Easy. Medal rate is a noisy, thresholded metric.</p>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== ABLATIONS ===== -->
+<section class="section">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Ablations</span>
+      <h2 class="title rm-section-title is-3">All Three Components Contribute</h2>
+      <p class="rm-section-sub">Mean-percentile gain (best attempt) from each component; removing any one lowers performance on both benchmarks.</p>
+    </div>
+    <div class="grid-3" style="max-width:1000px;margin:0 auto">
+      <div class="method-card">
+        <div class="method-icon ic-teal"><i class="fas fa-folder-open"></i></div>
+        <h4>Persistent harness</h4>
+        <div class="gain">+16.3 <small>Easy</small> &nbsp; +4.2 <small>Hard</small></div>
+        <p>Over the DSGym harness. It raises the valid rate to 100% on Easy and from 68.5% to 81.5% on Hard; harder tasks need supervision on top.</p>
+      </div>
+      <div class="method-card">
+        <div class="method-icon ic-indigo"><i class="fas fa-terminal"></i></div>
+        <h4>Code execution in the PRA</h4>
+        <div class="gain">+6.0 <small>Easy</small> &nbsp; +4.3 <small>Hard</small></div>
+        <p>AdaPRA over the −PRA variant, which scores rubrics by reading files alone. Execution also changes what the PRA adds, favoring rubrics that compute statistics of the agent's predictions.</p>
+      </div>
+      <div class="method-card">
+        <div class="method-icon ic-rose"><i class="fas fa-wand-magic-sparkles"></i></div>
+        <h4>Adaptive rubrics</h4>
+        <div class="gain">+1.7 <small>Easy</small> &nbsp; +4.3 <small>Hard</small></div>
+        <p>AdaPRA over frozen seed rubrics. Adaptation matters more on the harder, more diverse benchmark, where it also raises the above-median rate from 22.2% to 33.3%.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== TRANSFER ===== -->
+<section class="section" style="background: var(--bg-soft);">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Generalization</span>
+      <h2 class="title rm-section-title is-3">Easy-to-Hard Rubric Transfer</h2>
+      <p class="rm-section-sub">
+        Seed rubrics are discovered only on DSPredict-Easy, which is mostly tabular, yet they help on DSPredict-Hard, whose tasks span
+        vision, text, audio, time series, and molecular data.
+      </p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:1rem;max-width:860px;margin:0 auto">
+      <div class="finding-card">
+        <div class="finding-num">1</div>
+        <p><strong>Frozen seed rubrics transfer.</strong> With the seed rubrics frozen, supervision adds 6.3 percentage points over our harness on DSPredict-Hard, close to its 6.5-point gain on DSPredict-Easy.</p>
+      </div>
+      <div class="finding-card">
+        <div class="finding-num">2</div>
+        <p><strong>The same process failures occur on both benchmarks.</strong> Every seed rubric fails in at least 24% of Hard attempts. Across the 19 rubrics, the PRA's importance scores are almost identically ranked on both benchmarks (Spearman ρ = 0.91), as are failure rates (ρ = 0.66).</p>
+      </div>
+      <div class="finding-card">
+        <div class="finding-num">3</div>
+        <p><strong>Adaptation supplies the domain-specific criteria.</strong> The PRA adds at least one rubric on 79% of Hard tasks versus 51% of Easy tasks, encoding domain knowledge such as non-negative time-to-failure predictions in LANL Earthquake Prediction.</p>
+      </div>
+      <div class="finding-card">
+        <div class="finding-num">4</div>
+        <p><strong>Rubrics also transfer across base models.</strong> Supervision with rubrics mined from Qwen3-Coder-Next's runs raises DeepSeek-V3.2's single-attempt mean percentile on DSPredict-Easy from 36.9 to 44.7.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ===== BIBTEX ===== -->
+<section class="section" id="bibtex">
+  <div class="container">
+    <div class="has-text-centered" style="margin-bottom:2rem">
+      <span class="rm-eyebrow">Citation</span>
+      <h2 class="title rm-section-title is-3">BibTeX</h2>
+    </div>
+    <div style="max-width:820px;margin:0 auto;position:relative">
+      <button class="bib-copy" onclick="copyBib()"><i class="fas fa-copy"></i> Copy</button>
+      <div class="bib-box" id="bibtext">@article{naik2026adapra,
+  title  = {AdaPRA: Process Reward Agents with Adaptive Rubrics for Data Science},
+  author = {Naik, Atharva and Chari, Vivek and Llado, Pol and Fried, Daniel and
+            Ros{\'e}, Carolyn and Van Durme, Benjamin and Thomson, Sam and Svegliato, Justin},
+  year   = {2026}
+}</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <p>AdaPRA · Carnegie Mellon University &amp; Microsoft · 2026</p>
+  <p style="margin-top:0.5rem;font-size:0.82rem">Website template adapted from <a href="https://github.com/cmu-llab/ReaComp/tree/gh-pages" target="_blank">ReaComp</a>.</p>
+</footer>
+
+<script>
+function copyBib() {
+  const text = document.getElementById('bibtext').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.bib-copy');
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>
