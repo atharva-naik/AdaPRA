@@ -25,7 +25,7 @@ Main results from the paper (Tables 1 and 2), with Qwen3-Coder-Next (80B) as the
 
 | Method | Pct. | Valid | >Median | Medal | Pct. | Valid | >Median | Medal |
 |---|---|---|---|---|---|---|---|---|
-| Qwen3-Coder-Next + DSGym | 44.5 | 76.3 | 50.0 | 2.6 | 36.3 | 41.0 | 35.6 | 1.1 |
+| Qwen3-Coder-Next + DSGym | 44.5 | 76.3 | 50.0 | 2.6 | 47.5 | 41.0 | 46.6 | 1.1 |
 | Qwen3-Coder-Next + Ours | 60.8 | 100.0 | 71.1 | **7.9** | 51.3 | 84.5 | 53.9 | 2.6 |
 | *Process supervision on top of Our Harness* | | | | | | | | |
 | + DataPRM | 54.6 | 100.0 | 65.8 | 5.3 | 44.8 | 100.0 | 44.6 | 2.1 |
