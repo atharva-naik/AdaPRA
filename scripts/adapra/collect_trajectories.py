@@ -63,8 +63,6 @@ def _import_rubric_module(name: str):
 
 _import_rubric_module("schema")
 _import_rubric_module("rubrics")
-_import_rubric_module("detectors")
-_import_rubric_module("detectors.programmatic")
 
 from dsgym.adapra.schema import (  # noqa: E402
     TaskInfo, TrajectoryRecord, TrajectoryStep, OutcomeLabels
