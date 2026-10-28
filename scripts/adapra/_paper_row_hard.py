@@ -32,10 +32,12 @@ RUNS = [
     ("AdaPRA (evolve)", "/path/to/scratch/dsgym_v4_hard_evolve_xattempt_out/trajectories_v4/dspredict-hard-evolve-xattempt/dspredict-hard", "nested"),
     ("AdaPRA - PRA", "/path/to/scratch/dsgym_v4_hard_evolve_nopra_xattempt_out/trajectories_v4/dspredict-hard-evolve-nopra-xattempt/dspredict-hard", "nested"),
 ]
-# Optional override: `_paper_row_hard.py NAME DIR [NAME DIR ...]` (nested layout) replaces RUNS.
+# Optional override: `_paper_row_hard.py NAME DIR [NAME DIR ...]` replaces RUNS; DIR is nested
+# ({task}/attempt_N.json) unless suffixed with `:flat` (stock DSGym runs: {task}__model__NN.json).
 if len(sys.argv) > 1:
     _a = sys.argv[1:]
-    RUNS = [(_a[i], _a[i + 1], "nested") for i in range(0, len(_a), 2)]
+    RUNS = [(_a[i], _a[i + 1][:-5], "flat") if _a[i + 1].endswith(":flat") else (_a[i], _a[i + 1], "nested")
+            for i in range(0, len(_a), 2)]
 
 
 def macro_per_attempt(base: Path, layout: str):

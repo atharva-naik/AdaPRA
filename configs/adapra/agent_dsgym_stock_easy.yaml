@@ -1,0 +1,20 @@
+# Stock DSGym harness (DSPredictReActAgent + Jupyter executors), DSPredict-Easy.
+# Run with scripts/adapra/collect_trajectories.py --runs-per-task 5 (see README).
+agent:
+  model: "bedrock/qwen.qwen3-coder-next"
+  api_key: ""
+  base_url: ""
+  aws_region_name: "us-east-1"
+  backend: "litellm"
+  max_turns: 200
+  time_out: 600
+  temperature: 0
+  runs_per_task: 5
+  mock: false
+  manager_url: "http://localhost:5001"
+  submission_dir: "./submissions"
+collection:
+  split: "easy"
+  task_limit: null
+  start_index: 0
+  output_dir: "outputs/adapra/bon/trajectories"

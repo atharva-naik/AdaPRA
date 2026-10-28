@@ -130,9 +130,6 @@ all = [
 ]
 
 
-[project.scripts]
-dsgym = "dsgym.cli.main:main"
-
 
 [tool.setuptools.packages.find]
 where = ["."]

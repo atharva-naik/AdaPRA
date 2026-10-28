@@ -1,0 +1,32 @@
+Bootstrap: docker
+From: pytorch/pytorch:2.8.0-cuda12.6-cudnn9-runtime
+
+%files
+    main.py /app/main.py
+    kernel_executor.py /app/kernel_executor.py
+    instruction.txt /app/instruction.txt
+    output_cleaning.py /app/output_cleaning.py
+    requirements.kaggle.txt /opt/requirements.txt
+
+%post
+    pip install --no-cache-dir -r /opt/requirements.txt
+    mkdir -p /submission /app /data
+    chmod -R 777 /submission /app
+
+%environment
+    export PORT=8432
+    export CODE_FOLDER="/data"
+    export PYTHONWARNINGS="ignore::FutureWarning"
+    export PYTHONUNBUFFERED=1
+    export PYTHONDONTWRITEBYTECODE=1
+    export PATH=/opt/conda/bin:$PATH
+
+%runscript
+    cd /app && python main.py
+
+%startscript
+    cd /app && python main.py
+
+%labels
+    Author DSGym
+    Description Kaggle executor with FastAPI + Jupyter kernel for DSGym harness
