@@ -94,6 +94,8 @@
     .pub-btn:hover { transform: translateY(-2px); background: #991b1b; }
     .pub-btn.outline { background: #fff; color: var(--ink) !important; border: 1px solid var(--line); box-shadow: none; }
     .pub-btn.outline:hover { border-color: rgba(185,28,28,0.45); color: var(--primary) !important; }
+    .pub-btn.disabled { cursor: not-allowed; opacity: 0.55; }
+    .pub-btn.disabled:hover { transform: none; border-color: var(--line); color: var(--ink) !important; }
 
     /* METRICS BAND (dark) */
     .metrics-band { margin-top: 3rem; background: linear-gradient(135deg, #1c1917 0%, #450a0a 100%); padding: 2rem 1.5rem; }
@@ -228,9 +230,9 @@
       <a href="https://arxiv.org/pdf/2610.33245" class="pub-btn outline" target="_blank">
         <span class="icon"><i class="fas fa-file-pdf"></i></span> PDF
       </a>
-      <a href="https://github.com/atharva-naik/AdaPRA" class="pub-btn outline" target="_blank">
-        <span class="icon"><i class="fab fa-github"></i></span> Code
-      </a>
+      <span class="pub-btn outline disabled" title="Code coming soon" aria-disabled="true">
+        <span class="icon"><i class="fab fa-github"></i></span> Code (coming soon)
+      </span>
       <a href="#results" class="pub-btn outline">
         <span class="icon"><i class="fas fa-chart-bar"></i></span> Results
       </a>
