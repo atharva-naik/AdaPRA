@@ -5,175 +5,175 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AdaPRA: Process Reward Agents with Adaptive Rubrics for Data Science</title>
   <meta name="description" content="AdaPRA supervises a data science agent with a process reward agent that checks its code and workspace against rubrics discovered from past runs and adapted to each task. It raises an 80B open-weights agent's mean Kaggle percentile by 24.5 points on DSPredict-Easy and 14.8 points on DSPredict-Hard.">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#b91c1c">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
 
   <style>
     :root {
-      --primary: #0f766e;
-      --primary-soft: #14b8a6;
-      --accent: #6366f1;
-      --ink: #0f172a;
-      --sub: #475569;
-      --line: #e2e8f0;
-      --bg-soft: #f6fbfa;
+      --primary: #b91c1c;
+      --primary-soft: #e11d48;
+      --accent: #f97316;
+      --deep: #450a0a;
+      --ink: #1c1917;
+      --sub: #57534e;
+      --line: #e7e5e4;
+      --bg-soft: #fdf8f6;
+      --bg-tint: #fff1f2;
     }
+    html { scroll-behavior: smooth; scroll-padding-top: 64px; }
     body { background: #fff; color: var(--ink); font-family: 'Inter', sans-serif; }
     code, pre { font-family: 'JetBrains Mono', monospace; }
+    .serif { font-family: 'Source Serif 4', Georgia, serif; }
+
+    /* TOP NAV */
+    .topnav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .topnav .inner { max-width: 1120px; margin: 0 auto; padding: 0.7rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .topnav .brand { font-family: 'Source Serif 4', Georgia, serif; font-weight: 700; font-size: 1.15rem; color: var(--primary); letter-spacing: -0.01em; text-decoration: none; }
+    .topnav .links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+    .topnav .links a { color: var(--sub); font-weight: 500; font-size: 0.9rem; text-decoration: none; }
+    .topnav .links a:hover { color: var(--primary); }
+    @media (max-width: 768px) { .topnav .links { display: none; } }
 
     /* HERO */
     .hero-banner {
-      position: relative;
-      padding: 4.5rem 1.5rem 3rem;
+      position: relative; padding: 4rem 1.5rem 0;
       background:
-        radial-gradient(1200px 500px at 10% -10%, rgba(20,184,166,0.13), transparent 60%),
-        radial-gradient(800px 400px at 100% 0%, rgba(99,102,241,0.12), transparent 60%),
-        linear-gradient(180deg, #ffffff 0%, #f6fbfa 100%);
-      border-bottom: 1px solid var(--line);
+        radial-gradient(1100px 480px at 0% -10%, rgba(225,29,72,0.10), transparent 60%),
+        radial-gradient(800px 420px at 100% 0%, rgba(249,115,22,0.10), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg-soft) 100%);
       overflow: hidden;
     }
     .hero-banner::before {
       content: ""; position: absolute; inset: 0;
-      background-image: linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px);
-      background-size: 36px 36px;
-      mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 80%);
+      background-image: radial-gradient(rgba(185,28,28,0.10) 1px, transparent 1px);
+      background-size: 22px 22px;
+      mask-image: radial-gradient(ellipse at 50% 25%, black 25%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 25%, black 25%, transparent 75%);
       pointer-events: none;
     }
     .hero-banner > .container { position: relative; }
     .pub-eyebrow {
       display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.35rem 0.9rem; border-radius: 999px;
-      background: rgba(20,184,166,0.10); color: var(--primary);
-      font-weight: 600; font-size: 0.85rem; letter-spacing: 0.04em;
-      border: 1px solid rgba(20,184,166,0.28);
+      padding: 0.3rem 0.85rem; border-radius: 6px;
+      background: var(--bg-tint); color: var(--primary);
+      font-weight: 600; font-size: 0.82rem; letter-spacing: 0.06em; text-transform: uppercase;
+      border: 1px solid rgba(185,28,28,0.22);
     }
     .pub-title {
-      font-weight: 800 !important; letter-spacing: -0.02em;
-      background: linear-gradient(120deg, #042f2e 0%, #0f766e 45%, #6366f1 100%);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-top: 0.9rem !important; margin-bottom: 0.6rem !important;
-      font-size: clamp(1.85rem, 4.2vw, 3rem) !important;
-      line-height: 1.1 !important;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 700 !important; letter-spacing: -0.015em;
+      color: var(--deep);
+      margin-top: 0.9rem !important; margin-bottom: 0.7rem !important;
+      font-size: clamp(1.9rem, 4.2vw, 3.1rem) !important; line-height: 1.12 !important;
     }
-    .pub-subtitle { color: var(--sub); font-weight: 500; max-width: 880px; margin: 0 auto 1rem; font-size: 1.08rem; }
-    .pub-authors { margin: 1.1rem auto 0.5rem; max-width: 940px; line-height: 1.9; color: #1f2937; }
-    .pub-affil { color: var(--sub); font-size: 0.95rem; margin-top: 0.4rem; }
+    .pub-title .accent {
+      background: linear-gradient(120deg, #b91c1c 0%, #e11d48 55%, #f97316 100%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .pub-subtitle { color: var(--sub); font-weight: 500; max-width: 860px; margin: 0 auto 1rem; font-size: 1.08rem; }
+    .pub-authors { margin: 1.1rem auto 0.4rem; max-width: 940px; line-height: 1.9; color: #292524; font-size: 1.02rem; }
+    .pub-affil { color: var(--sub); font-size: 0.95rem; margin-top: 0.3rem; }
     .pub-links { margin-top: 1.4rem; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
     .pub-btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.55rem 1.1rem; border-radius: 999px;
-      background: #0f172a; color: #fff !important; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      padding: 0.55rem 1.15rem; border-radius: 8px;
+      background: var(--primary); color: #fff !important; font-weight: 600;
       font-size: 0.95rem; text-decoration: none;
-      box-shadow: 0 4px 14px rgba(15,23,42,0.18);
-      transition: all .2s; border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 6px 16px rgba(185,28,28,0.22); transition: all .2s;
     }
-    .pub-btn:hover { transform: translateY(-2px); background: var(--primary); }
+    .pub-btn:hover { transform: translateY(-2px); background: #991b1b; }
     .pub-btn.outline { background: #fff; color: var(--ink) !important; border: 1px solid var(--line); box-shadow: none; }
-    .pub-btn.outline:hover { background: var(--bg-soft); transform: translateY(-2px); }
+    .pub-btn.outline:hover { border-color: rgba(185,28,28,0.45); color: var(--primary) !important; }
 
-    /* METRICS STRIP */
-    .metrics-strip { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1rem; margin-top: 2.4rem; }
+    /* METRICS BAND (dark) */
+    .metrics-band { margin-top: 3rem; background: linear-gradient(135deg, #1c1917 0%, #450a0a 100%); padding: 2rem 1.5rem; }
+    .metrics-strip { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1rem; }
     @media (max-width: 768px) { .metrics-strip { grid-template-columns: repeat(2,1fr); } }
-    .metric-card {
-      background: #fff; border: 1px solid var(--line); border-radius: 18px;
-      padding: 1.1rem 1.2rem; text-align: center;
-      box-shadow: 0 4px 14px rgba(15,23,42,0.04); transition: all .25s;
-    }
-    .metric-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15,118,110,0.12); border-color: rgba(15,118,110,0.35); }
+    .metric-card { text-align: center; padding: 0.6rem 0.8rem; border-left: 1px solid rgba(255,255,255,0.12); }
+    .metric-card:first-child { border-left: none; }
     .metric-num {
-      font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
-      background: linear-gradient(120deg, #0f766e, #6366f1);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #fda4af, #fb923c);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .metric-label { color: var(--sub); font-size: 0.86rem; font-weight: 500; margin-top: 0.2rem; }
+    .metric-label { color: #d6d3d1; font-size: 0.86rem; font-weight: 500; margin-top: 0.2rem; line-height: 1.45; }
 
-    /* SECTION TITLES */
-    .section { padding: 3rem 1.5rem; }
-    .rm-section-title { font-weight: 800 !important; letter-spacing: -0.01em; color: var(--ink); position: relative; display: inline-block; }
-    .rm-section-title::after {
-      content: ""; display: block; height: 4px; width: 56px; margin: 0.6rem auto 0;
-      border-radius: 4px; background: linear-gradient(90deg, var(--primary-soft), var(--accent));
-    }
-    .rm-eyebrow { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.78rem; margin-bottom: 0.4rem; display: block; }
-    .rm-section-sub { color: var(--sub); max-width: 880px; margin: 0.8rem auto 0; }
+    /* SECTION TITLES (left-aligned, red rule) */
+    .section { padding: 3.2rem 1.5rem; }
+    .sec-head { max-width: 1000px; margin: 0 auto 2rem; }
+    .rm-eyebrow { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.76rem; margin-bottom: 0.35rem; display: block; }
+    .rm-section-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 700 !important; letter-spacing: -0.01em; color: var(--ink); padding-left: 0.85rem; border-left: 4px solid var(--primary-soft); }
+    .rm-section-sub { color: var(--sub); max-width: 860px; margin: 0.8rem 0 0; }
 
     /* ABSTRACT */
     .abstract-box {
-      background: linear-gradient(180deg, #f0fdfa 0%, #ccfbf1 100%);
-      border: 1px solid #99f6e4; border-radius: 22px;
-      padding: 2rem 2.2rem; box-shadow: 0 10px 30px rgba(15,118,110,0.06); position: relative;
+      background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--primary);
+      border-radius: 12px; padding: 2rem 2.2rem; box-shadow: 0 12px 30px rgba(69,10,10,0.06); position: relative;
     }
     .abstract-box::before {
-      content: "TL;DR"; position: absolute; top: -12px; left: 22px;
-      background: linear-gradient(120deg, var(--primary-soft), var(--accent));
-      color: #fff; padding: 0.25rem 0.7rem; border-radius: 999px;
+      content: "TL;DR"; position: absolute; top: -14px; left: 22px;
+      background: var(--primary); color: #fff; padding: 0.2rem 0.65rem; border-radius: 6px;
       font-weight: 700; font-size: 0.72rem; letter-spacing: 0.16em;
     }
-    .abstract-box p { color: #1f2937; line-height: 1.75; margin-bottom: 0.8rem; }
-    .hl { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 6px; font-weight: 700; }
-    .hl-green  { background: rgba(16,185,129,0.15); color: #065f46; }
-    .hl-indigo { background: rgba(99,102,241,0.15); color: #3730a3; }
-    .hl-amber  { background: rgba(245,158,11,0.15); color: #92400e; }
+    .abstract-box p { color: #292524; line-height: 1.75; margin-bottom: 0.8rem; }
+    .hl { display: inline-block; padding: 0.02rem 0.45rem; border-radius: 5px; font-weight: 700; }
+    .hl-green  { background: rgba(225,29,72,0.10); color: #9f1239; }
+    .hl-indigo { background: rgba(249,115,22,0.13); color: #9a3412; }
+    .hl-amber  { background: rgba(120,113,108,0.14); color: #44403c; }
 
     /* FIGURE CARDS */
-    .figure-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 1.6rem; box-shadow: 0 10px 30px rgba(15,23,42,0.04); }
-    .figure-card img { width: 100%; height: auto; display: block; border-radius: 10px; }
-    .figure-caption { margin-top: 1rem; font-size: 0.95rem; color: var(--sub); text-align: center; line-height: 1.6; }
-    .figure-caption b { color: var(--ink); }
+    .figure-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1.5rem; box-shadow: 0 10px 28px rgba(28,25,23,0.05); }
+    .figure-card img { width: 100%; height: auto; display: block; border-radius: 6px; }
+    .figure-caption { margin-top: 1rem; font-size: 0.94rem; color: var(--sub); text-align: left; line-height: 1.6; }
+    .figure-caption b { color: var(--primary); }
 
     /* RESULTS TABLE */
     .results-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-    .results-table th {
-      background: linear-gradient(180deg, #f0fdfa, #ccfbf1);
-      color: var(--primary); font-weight: 700; padding: 0.7rem 0.9rem;
-      border-bottom: 2px solid #99f6e4; text-align: center; white-space: nowrap;
-    }
+    .results-table th { background: var(--bg-tint); color: var(--deep); font-weight: 700; padding: 0.7rem 0.9rem; border-bottom: 2px solid #fecdd3; text-align: center; white-space: nowrap; }
     .results-table th:first-child, .results-table td:first-child { text-align: left; }
     .results-table td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line); text-align: center; }
     .results-table tr:last-child td { border-bottom: none; }
-    .results-table tr:hover td { background: #f8fafc; }
-    .results-table .ours td { background: rgba(20,184,166,0.07); }
+    .results-table tr:hover td { background: #fafaf9; }
+    .results-table .ours td { background: rgba(225,29,72,0.06); }
     .results-table .best { font-weight: 800; color: var(--primary); }
-    .results-table .group-header td {
-      background: #f1f5f9; font-weight: 700; color: var(--sub); text-align: left;
-      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.5rem 0.9rem;
-    }
+    .results-table .group-header td { background: #f5f5f4; font-weight: 700; color: var(--sub); text-align: left; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.5rem 0.9rem; }
     .results-table .sep { border-left: 2px solid var(--line); }
-    .table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(15,23,42,0.04); }
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(28,25,23,0.04); }
 
     /* METHOD CARDS */
-    .method-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 1.4rem; transition: all .25s; box-shadow: 0 4px 14px rgba(15,23,42,0.04); }
-    .method-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(15,118,110,0.12); }
-    .method-icon { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem; margin-bottom: 0.8rem; }
-    .ic-teal   { background: linear-gradient(135deg, #0f766e, #14b8a6); }
-    .ic-indigo { background: linear-gradient(135deg, #4f46e5, #818cf8); }
-    .ic-amber  { background: linear-gradient(135deg, #d97706, #f59e0b); }
+    .method-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1.35rem; transition: all .25s; box-shadow: 0 4px 14px rgba(28,25,23,0.04); }
+    .method-card:hover { transform: translateY(-3px); border-color: rgba(185,28,28,0.35); box-shadow: 0 16px 34px rgba(185,28,28,0.10); }
+    .method-icon { width: 42px; height: 42px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1.05rem; margin-bottom: 0.8rem; }
+    .ic-teal   { background: linear-gradient(135deg, #b91c1c, #e11d48); }
+    .ic-indigo { background: linear-gradient(135deg, #9a3412, #f97316); }
+    .ic-amber  { background: linear-gradient(135deg, #44403c, #78716c); }
     .ic-rose   { background: linear-gradient(135deg, #be123c, #fb7185); }
-    .method-card h4 { font-weight: 800; font-size: 1.05rem; margin-bottom: 0.4rem; color: var(--ink); }
+    .method-card h4 { font-family: 'Source Serif 4', Georgia, serif; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.4rem; color: var(--ink); }
     .method-card p  { color: var(--sub); font-size: 0.92rem; line-height: 1.55; }
-    .gain { font-size: 1.6rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
-    .gain small { font-size: 0.85rem; color: var(--sub); font-weight: 600; }
+    .gain { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.6rem; font-weight: 700; color: var(--primary); letter-spacing: -0.01em; margin-bottom: 0.3rem; }
+    .gain small { font-family: 'Inter', sans-serif; font-size: 0.82rem; color: var(--sub); font-weight: 600; }
 
     /* FINDING CARDS */
-    .finding-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.4rem; box-shadow: 0 4px 14px rgba(15,23,42,0.04); display: flex; gap: 1rem; align-items: flex-start; }
-    .finding-num { min-width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary-soft), var(--accent)); color: #fff; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .finding-card { background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--primary-soft); border-radius: 10px; padding: 1.1rem 1.3rem; box-shadow: 0 4px 14px rgba(28,25,23,0.04); display: flex; gap: 1rem; align-items: flex-start; }
+    .finding-num { min-width: 32px; height: 32px; border-radius: 8px; background: var(--bg-tint); color: var(--primary); font-family: 'Source Serif 4', Georgia, serif; font-weight: 700; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #fecdd3; }
     .finding-card p { color: var(--sub); font-size: 0.93rem; line-height: 1.6; margin: 0; }
     .finding-card strong { color: var(--ink); }
 
     /* BIB */
-    .bib-box { background: #0f172a; color: #e2e8f0; border-radius: 16px; padding: 1.4rem 1.6rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.7; position: relative; overflow-x: auto; white-space: pre; }
-    .bib-copy { position: absolute; top: 0.8rem; right: 0.8rem; background: rgba(255,255,255,0.1); border: none; color: #94a3b8; padding: 0.3rem 0.7rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: all .2s; font-family: 'Inter', sans-serif; }
-    .bib-copy:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .bib-box { background: #1c1917; color: #e7e5e4; border-radius: 12px; padding: 1.4rem 1.6rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.7; position: relative; overflow-x: auto; white-space: pre; border-top: 3px solid var(--primary-soft); }
+    .bib-copy { position: absolute; top: 0.8rem; right: 0.8rem; z-index: 2; background: rgba(255,255,255,0.1); border: none; color: #d6d3d1; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all .2s; font-family: 'Inter', sans-serif; }
+    .bib-copy:hover { background: rgba(225,29,72,0.5); color: #fff; }
 
     /* GRID HELPERS */
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; align-items: start; }
@@ -183,22 +183,32 @@
     @media (max-width: 768px)  { .grid-2,.grid-3,.grid-4 { grid-template-columns: 1fr; } }
 
     /* FOOTER */
-    .site-footer { background: #0f172a; color: #94a3b8; padding: 2rem 1.5rem; text-align: center; font-size: 0.9rem; }
-    .site-footer a { color: #5eead4; text-decoration: none; }
-    .site-footer a:hover { color: #99f6e4; }
+    .site-footer { background: #1c1917; color: #a8a29e; padding: 2rem 1.5rem; text-align: center; font-size: 0.9rem; }
+    .site-footer a { color: #fda4af; text-decoration: none; }
+    .site-footer a:hover { color: #fecdd3; }
     .section-divider { height: 1px; background: var(--line); margin: 0; }
     .note { color: var(--sub); font-size: 0.85rem; }
   </style>
 </head>
 <body>
 
+<nav class="topnav">
+  <div class="inner">
+    <a class="brand" href="#">AdaPRA</a>
+    <div class="links">
+      <a href="#abstract">Abstract</a><a href="#method">Method</a><a href="#discovery">Rubric Discovery</a>
+      <a href="#results">Results</a><a href="#ablations">Ablations</a><a href="#transfer">Transfer</a><a href="#bibtex">BibTeX</a>
+    </div>
+  </div>
+</nav>
+
 <!-- ===== HERO ===== -->
 <section class="hero-banner">
   <div class="container has-text-centered">
     <div>
-      <span class="pub-eyebrow"><i class="fas fa-flask" style="font-size:0.8rem"></i> Preprint</span>
+      <span class="pub-eyebrow"><i class="ai ai-arxiv" style="font-size:0.85rem"></i> arXiv 2610.33245</span>
     </div>
-    <h1 class="pub-title">AdaPRA: Process Reward Agents with<br>Adaptive Rubrics for Data Science</h1>
+    <h1 class="pub-title"><span class="accent">AdaPRA</span>: Process Reward Agents with<br>Adaptive Rubrics for Data Science</h1>
     <p class="pub-subtitle">
       A process reward agent that checks a data science agent's code, outputs, and trajectory against rubrics
       discovered from past runs and adapted to each task, so the agent fixes errors while it still can.
@@ -212,14 +222,16 @@
     <p class="pub-affil"><sup>1</sup>Carnegie Mellon University &nbsp;&nbsp; <sup>2</sup>Microsoft</p>
 
     <div class="pub-links">
-      <!-- TODO: replace with the arXiv link once posted -->
-      <a href="#" class="pub-btn outline" title="Coming soon">
-        <span class="icon"><i class="ai ai-arxiv"></i></span> arXiv (coming soon)
+      <a href="https://arxiv.org/abs/2610.33245" class="pub-btn" target="_blank">
+        <span class="icon"><i class="ai ai-arxiv"></i></span> arXiv
+      </a>
+      <a href="https://arxiv.org/pdf/2610.33245" class="pub-btn outline" target="_blank">
+        <span class="icon"><i class="fas fa-file-pdf"></i></span> PDF
       </a>
       <a href="https://github.com/atharva-naik/AdaPRA" class="pub-btn outline" target="_blank">
         <span class="icon"><i class="fab fa-github"></i></span> Code
       </a>
-      <a href="#results" class="pub-btn">
+      <a href="#results" class="pub-btn outline">
         <span class="icon"><i class="fas fa-chart-bar"></i></span> Results
       </a>
       <a href="#bibtex" class="pub-btn outline">
@@ -227,7 +239,8 @@
       </a>
     </div>
 
-    <!-- KEY METRICS -->
+  </div>
+  <div class="metrics-band">
     <div class="metrics-strip">
       <div class="metric-card">
         <div class="metric-num">+24.5</div>
@@ -250,9 +263,9 @@
 </section>
 
 <!-- ===== ABSTRACT ===== -->
-<section class="section" style="background: var(--bg-soft);">
+<section class="section" id="abstract" style="background: var(--bg-soft);">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Abstract</span>
       <h2 class="title rm-section-title is-3">What is AdaPRA?</h2>
     </div>
@@ -283,7 +296,7 @@
 <!-- ===== TEASER ===== -->
 <section class="section">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Motivation</span>
       <h2 class="title rm-section-title is-3">Silent Process Errors</h2>
       <p class="rm-section-sub">
@@ -303,9 +316,9 @@
 <div class="section-divider"></div>
 
 <!-- ===== METHOD ===== -->
-<section class="section" style="background: var(--bg-soft);">
+<section class="section" id="method" style="background: var(--bg-soft);">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Method</span>
       <h2 class="title rm-section-title is-3">How AdaPRA Works</h2>
       <p class="rm-section-sub">
@@ -349,9 +362,9 @@
 <div class="section-divider"></div>
 
 <!-- ===== RUBRIC DISCOVERY ===== -->
-<section class="section">
+<section class="section" id="discovery">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Rubric Discovery</span>
       <h2 class="title rm-section-title is-3">Mining Rubrics from Past Attempts</h2>
     </div>
@@ -384,7 +397,7 @@
 <!-- ===== RESULTS ===== -->
 <section class="section" id="results" style="background: var(--bg-soft);">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Results</span>
       <h2 class="title rm-section-title is-3">DSPredict-Easy and DSPredict-Hard</h2>
       <p class="rm-section-sub">
@@ -443,9 +456,9 @@
 <div class="section-divider"></div>
 
 <!-- ===== ABLATIONS ===== -->
-<section class="section">
+<section class="section" id="ablations">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Ablations</span>
       <h2 class="title rm-section-title is-3">All Three Components Contribute</h2>
       <p class="rm-section-sub">Mean-percentile gain (best attempt) from each component; removing any one lowers performance on both benchmarks.</p>
@@ -476,9 +489,9 @@
 <div class="section-divider"></div>
 
 <!-- ===== TRANSFER ===== -->
-<section class="section" style="background: var(--bg-soft);">
+<section class="section" id="transfer" style="background: var(--bg-soft);">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Generalization</span>
       <h2 class="title rm-section-title is-3">Easy-to-Hard Rubric Transfer</h2>
       <p class="rm-section-sub">
@@ -512,17 +525,21 @@
 <!-- ===== BIBTEX ===== -->
 <section class="section" id="bibtex">
   <div class="container">
-    <div class="has-text-centered" style="margin-bottom:2rem">
+    <div class="sec-head">
       <span class="rm-eyebrow">Citation</span>
       <h2 class="title rm-section-title is-3">BibTeX</h2>
     </div>
     <div style="max-width:820px;margin:0 auto;position:relative">
       <button class="bib-copy" onclick="copyBib()"><i class="fas fa-copy"></i> Copy</button>
-      <div class="bib-box" id="bibtext">@article{naik2026adapra,
-  title  = {AdaPRA: Process Reward Agents with Adaptive Rubrics for Data Science},
-  author = {Naik, Atharva and Chari, Vivek and Llado, Pol and Fried, Daniel and
-            Ros{\'e}, Carolyn and Van Durme, Benjamin and Thomson, Sam and Svegliato, Justin},
-  year   = {2026}
+      <div class="bib-box" id="bibtext">@misc{naik2026adapra,
+  title         = {AdaPRA: Process Reward Agents with Adaptive Rubrics for Data Science},
+  author        = {Naik, Atharva and Chari, Vivek and Llado, Pol and Fried, Daniel and
+                   Ros{\'e}, Carolyn and Van Durme, Benjamin and Thomson, Sam and Svegliato, Justin},
+  year          = {2026},
+  eprint        = {2610.33245},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  url           = {https://arxiv.org/abs/2610.33245}
 }</div>
     </div>
   </div>
